@@ -1,0 +1,60 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "functions": {
+    "app/api/parse/pdf/route.ts": {
+      "maxDuration": 30
+    },
+    "app/api/parse/excel/route.ts": {
+      "maxDuration": 30
+    },
+    "app/api/calculate/route.ts": {
+      "maxDuration": 30
+    },
+    "app/api/bills/*/export/route.ts": {
+      "maxDuration": 30
+    }
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "origin-when-cross-origin"
+        }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/uploads/(.*)",
+      "destination": "/api/uploads/$1"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
+}

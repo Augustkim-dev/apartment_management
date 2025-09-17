@@ -1,0 +1,637 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { UnitInvoiceResponse } from '@/types/database';
+import Link from 'next/link';
+import {
+  ArrowLeftIcon,
+  PrinterIcon,
+  DocumentArrowDownIcon,
+  CalendarIcon,
+  BoltIcon,
+  CurrencyDollarIcon,
+  ChartBarIcon,
+  CreditCardIcon,
+  BuildingOfficeIcon,
+  ExclamationCircleIcon,
+  ClipboardDocumentIcon,
+  CheckIcon
+} from '@heroicons/react/24/outline';
+
+export default function BillDetailPage() {
+  const params = useParams();
+  const router = useRouter();
+  const { data: session } = useSession();
+  const billId = params.id as string;
+
+  const [invoiceData, setInvoiceData] = useState<UnitInvoiceResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('payment');
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    async function fetchInvoiceData() {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/my/bills/${billId}`);
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            router.push('/login');
+            return;
+          }
+          throw new Error('Failed to fetch bill details');
+        }
+
+        const data = await response.json();
+        setInvoiceData(data);
+      } catch (err) {
+        console.error('Error fetching bill details:', err);
+        setError('청구서 정보를 불러오는데 실패했습니다.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if (billId && session) {
+      fetchInvoiceData();
+    }
+  }, [billId, session, router]);
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const formatCurrency = (amount: number) => {
+    if (!amount || isNaN(amount)) return '0';
+    return Math.floor(amount).toLocaleString();
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('ko-KR');
+  };
+
+  const copyAccountNumber = () => {
+    if (!invoiceData) return;
+    const accountText = `${invoiceData.paymentInfo.bankName} ${invoiceData.paymentInfo.accountNumber} ${invoiceData.paymentInfo.accountHolder}`;
+    navigator.clipboard.writeText(accountText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const calculateChange = () => {
+    if (!invoiceData) return { amount: 0, percentage: 0, isIncrease: true };
+    const diff = invoiceData.currentCharges.total - invoiceData.previousCharges.total;
+    const percentage = invoiceData.previousCharges.total > 0
+      ? (diff / invoiceData.previousCharges.total) * 100
+      : 0;
+    return {
+      amount: Math.abs(diff),
+      percentage: Math.abs(percentage),
+      isIncrease: diff > 0,
+    };
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">청구서를 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <ExclamationCircleIcon className="h-12 w-12 text-red-500 mx-auto" />
+          <p className="mt-4 text-gray-800">{error}</p>
+          <Link
+            href="/my/bills"
+            className="mt-4 inline-block px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+          >
+            목록으로
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!invoiceData) {
+    return <div className="p-6">데이터가 없습니다.</div>;
+  }
+
+  const change = calculateChange();
+  const daysUntilDue = Math.ceil((new Date(invoiceData.paymentInfo.dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* 헤더 */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+            <div className="flex items-center space-x-4">
+              <Link
+                href="/my/bills"
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <ArrowLeftIcon className="h-5 w-5 text-gray-600" />
+              </Link>
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+                  {invoiceData.billYear}년 {invoiceData.billMonth}월 전기요금 고지서
+                </h1>
+                <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                  청구기간: {formatDate(invoiceData.billingPeriod.start)} ~ {formatDate(invoiceData.billingPeriod.end)}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handlePrint}
+              className="inline-flex items-center px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
+            >
+              <PrinterIcon className="h-4 sm:h-5 w-4 sm:w-5 mr-2" />
+              인쇄
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        {/* 호실 정보 카드 */}
+        <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-4 sm:p-6 text-white mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+            <div>
+              <div className="flex items-center space-x-4 mb-2">
+                <span className="text-3xl sm:text-4xl font-bold">{invoiceData.unitNumber}호</span>
+                <span className="text-lg sm:text-xl">{invoiceData.tenantName}</span>
+              </div>
+              <p className="text-blue-100 text-sm sm:text-base">
+                {invoiceData.billYear}년 {invoiceData.billMonth}월 청구분
+              </p>
+            </div>
+            <div className="text-left sm:text-right mt-4 sm:mt-0">
+              <p className="text-xs sm:text-sm text-blue-100">
+                {invoiceData.unpaidAmount > 0 ? '총 납부액' : '당월 청구액'}
+              </p>
+              <p className="text-3xl sm:text-4xl font-bold">
+                {formatCurrency(invoiceData.currentCharges.total + (invoiceData.unpaidAmount || 0))}원
+              </p>
+              {invoiceData.unpaidAmount > 0 && (
+                <p className="text-xs sm:text-sm text-blue-200 mt-1">
+                  (당월 {formatCurrency(invoiceData.currentCharges.total)}원 + 미납 {formatCurrency(invoiceData.unpaidAmount)}원)
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* 요약 정보 카드 그리드 */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
+          {/* 전월 대비 */}
+          <div className="bg-white rounded-lg shadow-sm p-3 sm:p-4 lg:p-6">
+            <div className="flex items-center justify-between mb-1 sm:mb-2">
+              <span className="text-xs sm:text-sm text-gray-500">전월 대비</span>
+              <ChartBarIcon className="h-4 sm:h-5 w-4 sm:w-5 text-gray-400" />
+            </div>
+            <div className="flex items-baseline space-x-1 sm:space-x-2">
+              <span className={`text-lg sm:text-xl lg:text-2xl font-bold ${change.isIncrease ? 'text-red-600' : 'text-green-600'}`}>
+                {change.isIncrease ? '+' : '-'}{formatCurrency(change.amount)}
+              </span>
+              <span className="text-xs sm:text-sm text-gray-500">원</span>
+            </div>
+            <p className={`text-xs sm:text-sm mt-1 ${change.isIncrease ? 'text-red-600' : 'text-green-600'}`}>
+              {change.isIncrease ? '↑' : '↓'} {change.percentage.toFixed(1)}%
+            </p>
+          </div>
+
+          {/* 사용량 */}
+          <div className="bg-white rounded-lg shadow-sm p-3 sm:p-4 lg:p-6">
+            <div className="flex items-center justify-between mb-1 sm:mb-2">
+              <span className="text-xs sm:text-sm text-gray-500">당월 사용량</span>
+              <BoltIcon className="h-4 sm:h-5 w-4 sm:w-5 text-gray-400" />
+            </div>
+            <div className="flex items-baseline space-x-1 sm:space-x-2">
+              <span className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{invoiceData.meterReading.usage}</span>
+              <span className="text-xs sm:text-sm text-gray-500">kWh</span>
+            </div>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1">
+              전체 대비 {(invoiceData.usageRate * 100).toFixed(2)}%
+            </p>
+          </div>
+
+          {/* 미납금액 */}
+          {invoiceData.unpaidAmount > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4 lg:p-6">
+              <div className="flex items-center justify-between mb-1 sm:mb-2">
+                <span className="text-xs sm:text-sm text-red-600 font-medium">미납금액</span>
+                <ExclamationCircleIcon className="h-4 sm:h-5 w-4 sm:w-5 text-red-500" />
+              </div>
+              <div className="flex items-baseline space-x-1 sm:space-x-2">
+                <span className="text-lg sm:text-xl lg:text-2xl font-bold text-red-600">{formatCurrency(invoiceData.unpaidAmount)}</span>
+                <span className="text-xs sm:text-sm text-red-600">원</span>
+              </div>
+              <p className="text-xs sm:text-sm text-red-600 mt-1">
+                {invoiceData.unpaidDetails.length}개월 미납
+              </p>
+            </div>
+          )}
+
+          {/* 납기일 */}
+          <div className="bg-white rounded-lg shadow-sm p-3 sm:p-4 lg:p-6">
+            <div className="flex items-center justify-between mb-1 sm:mb-2">
+              <span className="text-xs sm:text-sm text-gray-500">납기일</span>
+              <CalendarIcon className="h-4 sm:h-5 w-4 sm:w-5 text-gray-400" />
+            </div>
+            <div className="flex items-baseline space-x-1 sm:space-x-2">
+              <span className="text-base sm:text-lg lg:text-xl font-bold text-gray-900">{formatDate(invoiceData.paymentInfo.dueDate)}</span>
+            </div>
+            <p className={`text-xs sm:text-sm mt-1 ${daysUntilDue < 7 ? 'text-red-600' : 'text-gray-500'}`}>
+              {daysUntilDue > 0 ? `D-${daysUntilDue}` : '납기일 경과'}
+            </p>
+          </div>
+        </div>
+
+        {/* 상세 정보 탭 */}
+        <div className="bg-white rounded-lg shadow-sm">
+          {/* 탭 헤더 - 모바일에서 가로 스크롤 */}
+          <div className="border-b overflow-x-auto">
+            <div className="flex space-x-4 sm:space-x-8 px-4 sm:px-6 min-w-max">
+              <button
+                onClick={() => setActiveTab('payment')}
+                className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap ${
+                  activeTab === 'payment'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <div className="flex items-center space-x-1 sm:space-x-2">
+                  <CreditCardIcon className="h-4 sm:h-5 w-4 sm:w-5" />
+                  <span>납부 정보</span>
+                </div>
+              </button>
+              <button
+                onClick={() => setActiveTab('charges')}
+                className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap ${
+                  activeTab === 'charges'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <div className="flex items-center space-x-1 sm:space-x-2">
+                  <CurrencyDollarIcon className="h-4 sm:h-5 w-4 sm:w-5" />
+                  <span>요금 상세</span>
+                </div>
+              </button>
+              <button
+                onClick={() => setActiveTab('meter')}
+                className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap ${
+                  activeTab === 'meter'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <div className="flex items-center space-x-1 sm:space-x-2">
+                  <BoltIcon className="h-4 sm:h-5 w-4 sm:w-5" />
+                  <span>검침 정보</span>
+                </div>
+              </button>
+              <button
+                onClick={() => setActiveTab('building')}
+                className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap ${
+                  activeTab === 'building'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <div className="flex items-center space-x-1 sm:space-x-2">
+                  <BuildingOfficeIcon className="h-4 sm:h-5 w-4 sm:w-5" />
+                  <span>건물 전체</span>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* 탭 콘텐츠 */}
+          <div className="p-4 sm:p-6">
+            {/* 요금 상세 탭 */}
+            {activeTab === 'charges' && (
+              <div>
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">요금 상세 내역</h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">항목</th>
+                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-right text-xs font-medium text-gray-500 uppercase">당월</th>
+                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-right text-xs font-medium text-gray-500 uppercase hidden sm:table-cell">전월</th>
+                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-right text-xs font-medium text-gray-500 uppercase hidden sm:table-cell">증감</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      <tr className="hover:bg-gray-50">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900">기본요금</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right">{formatCurrency(invoiceData.currentCharges.basicFee)}원</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">
+                          {formatCurrency(invoiceData.previousCharges.basicFee)}원
+                        </td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">
+                          {invoiceData.currentCharges.basicFee - invoiceData.previousCharges.basicFee > 0 ? '+' : ''}
+                          {formatCurrency(invoiceData.currentCharges.basicFee - invoiceData.previousCharges.basicFee)}원
+                        </td>
+                      </tr>
+                      <tr className="hover:bg-gray-50">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900">전력량요금</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right">{formatCurrency(invoiceData.currentCharges.powerFee)}원</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">
+                          {formatCurrency(invoiceData.previousCharges.powerFee)}원
+                        </td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">
+                          {invoiceData.currentCharges.powerFee - invoiceData.previousCharges.powerFee > 0 ? '+' : ''}
+                          {formatCurrency(invoiceData.currentCharges.powerFee - invoiceData.previousCharges.powerFee)}원
+                        </td>
+                      </tr>
+                      <tr className="hover:bg-gray-50">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900">기후환경요금</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right">{formatCurrency(invoiceData.currentCharges.climateFee)}원</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">
+                          {formatCurrency(invoiceData.previousCharges.climateFee)}원
+                        </td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">
+                          {invoiceData.currentCharges.climateFee - invoiceData.previousCharges.climateFee > 0 ? '+' : ''}
+                          {formatCurrency(invoiceData.currentCharges.climateFee - invoiceData.previousCharges.climateFee)}원
+                        </td>
+                      </tr>
+                      <tr className="hover:bg-gray-50">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900">연료비조정액</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right">{formatCurrency(invoiceData.currentCharges.fuelFee)}원</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">
+                          {formatCurrency(invoiceData.previousCharges.fuelFee)}원
+                        </td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">
+                          {invoiceData.currentCharges.fuelFee - invoiceData.previousCharges.fuelFee > 0 ? '+' : ''}
+                          {formatCurrency(invoiceData.currentCharges.fuelFee - invoiceData.previousCharges.fuelFee)}원
+                        </td>
+                      </tr>
+                      <tr className="bg-gray-50 font-semibold">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900">전기요금계</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right">{formatCurrency(invoiceData.currentCharges.subtotal)}원</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">{formatCurrency(invoiceData.previousCharges.subtotal)}원</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">
+                          {invoiceData.currentCharges.subtotal - invoiceData.previousCharges.subtotal > 0 ? '+' : ''}
+                          {formatCurrency(invoiceData.currentCharges.subtotal - invoiceData.previousCharges.subtotal)}원
+                        </td>
+                      </tr>
+                      <tr className="hover:bg-gray-50">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900">부가가치세</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right">{formatCurrency(invoiceData.currentCharges.vat)}원</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">{formatCurrency(invoiceData.previousCharges.vat)}원</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">
+                          {invoiceData.currentCharges.vat - invoiceData.previousCharges.vat > 0 ? '+' : ''}
+                          {formatCurrency(invoiceData.currentCharges.vat - invoiceData.previousCharges.vat)}원
+                        </td>
+                      </tr>
+                      <tr className="hover:bg-gray-50">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900">전력기금</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right">{formatCurrency(invoiceData.currentCharges.powerFund)}원</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">{formatCurrency(invoiceData.previousCharges.powerFund)}원</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">
+                          {invoiceData.currentCharges.powerFund - invoiceData.previousCharges.powerFund > 0 ? '+' : ''}
+                          {formatCurrency(invoiceData.currentCharges.powerFund - invoiceData.previousCharges.powerFund)}원
+                        </td>
+                      </tr>
+                      <tr className="bg-blue-50 font-bold">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900">당월 청구금액</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right text-blue-600">{formatCurrency(invoiceData.currentCharges.total)}원</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">
+                          {formatCurrency(invoiceData.previousCharges.total)}원
+                        </td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right text-blue-600 hidden sm:table-cell">
+                          {invoiceData.currentCharges.total - invoiceData.previousCharges.total > 0 ? '+' : ''}
+                          {formatCurrency(invoiceData.currentCharges.total - invoiceData.previousCharges.total)}원
+                        </td>
+                      </tr>
+                      {invoiceData.unpaidAmount > 0 && (
+                        <>
+                          <tr className="bg-red-50">
+                            <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-red-700">전월 미납금</td>
+                            <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right text-red-600">{formatCurrency(invoiceData.unpaidAmount)}원</td>
+                            <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">-</td>
+                            <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">-</td>
+                          </tr>
+                          <tr className="bg-purple-50 font-bold">
+                            <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-purple-900">총 납부금액</td>
+                            <td className="px-3 sm:px-6 py-3 sm:py-4 text-sm sm:text-lg text-right text-purple-600">
+                              {formatCurrency(invoiceData.currentCharges.total + invoiceData.unpaidAmount)}원
+                            </td>
+                            <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">-</td>
+                            <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">-</td>
+                          </tr>
+                        </>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* 모바일에서만 보이는 전월 비교 정보 */}
+                <div className="mt-4 p-3 bg-gray-50 rounded-lg sm:hidden">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">전월 대비</h4>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between">
+                      <span>전월 청구액</span>
+                      <span>{formatCurrency(invoiceData.previousCharges.total)}원</span>
+                    </div>
+                    <div className="flex justify-between font-semibold">
+                      <span>증감액</span>
+                      <span className={change.isIncrease ? 'text-red-600' : 'text-green-600'}>
+                        {change.isIncrease ? '+' : '-'}{formatCurrency(change.amount)}원
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 검침 정보 탭 */}
+            {activeTab === 'meter' && (
+              <div>
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">검침 정보</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+                  <div className="bg-gray-50 rounded-lg p-4 sm:p-6">
+                    <p className="text-xs sm:text-sm text-gray-500 mb-2">전월 지침</p>
+                    <p className="text-2xl sm:text-3xl font-bold text-gray-900">{invoiceData.meterReading.previous}</p>
+                    <p className="text-xs sm:text-sm text-gray-500 mt-1">kWh</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-4 sm:p-6">
+                    <p className="text-xs sm:text-sm text-gray-500 mb-2">당월 지침</p>
+                    <p className="text-2xl sm:text-3xl font-bold text-gray-900">{invoiceData.meterReading.current}</p>
+                    <p className="text-xs sm:text-sm text-gray-500 mt-1">kWh</p>
+                  </div>
+                  <div className="bg-blue-50 rounded-lg p-4 sm:p-6">
+                    <p className="text-xs sm:text-sm text-blue-600 mb-2">사용량</p>
+                    <p className="text-2xl sm:text-3xl font-bold text-blue-600">{invoiceData.meterReading.usage}</p>
+                    <p className="text-xs sm:text-sm text-blue-600 mt-1">kWh</p>
+                  </div>
+                </div>
+
+                <div className="mt-6 p-4 bg-yellow-50 rounded-lg">
+                  <p className="text-xs sm:text-sm text-yellow-800">
+                    <span className="font-semibold">참고:</span> 검침일은 매월 9일~10일이며, 검침값은 한국전력공사에서 제공한 데이터입니다.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* 건물 전체 탭 */}
+            {activeTab === 'building' && (
+              <div>
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">건물 전체 정보</h3>
+
+                <div className="mb-6">
+                  <h4 className="text-sm sm:text-md font-medium text-gray-700 mb-3">한전 계약 정보</h4>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs sm:text-sm text-gray-500">계약 종별</p>
+                        <p className="font-medium text-sm sm:text-base">{invoiceData.contractInfo.contractType}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs sm:text-sm text-gray-500">계약 전력</p>
+                        <p className="font-medium text-sm sm:text-base">{invoiceData.contractInfo.contractPower} kW</p>
+                      </div>
+                      <div>
+                        <p className="text-xs sm:text-sm text-gray-500">요금적용 전력</p>
+                        <p className="font-medium text-sm sm:text-base">{invoiceData.contractInfo.appliedPower} kW</p>
+                      </div>
+                      <div>
+                        <p className="text-xs sm:text-sm text-gray-500">기본료 단가</p>
+                        <p className="font-medium text-sm sm:text-base">1kW당 {formatCurrency(invoiceData.contractInfo.basicFeeRate)}원</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-sm sm:text-md font-medium text-gray-700 mb-3">건물 전체 청구 내역</h4>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <p className="text-xs sm:text-sm text-gray-500">총 청구액</p>
+                        <p className="text-xl sm:text-2xl font-bold text-gray-900">{formatCurrency(invoiceData.buildingTotal.totalAmount)}원</p>
+                      </div>
+                      <div>
+                        <p className="text-xs sm:text-sm text-gray-500">총 사용량</p>
+                        <p className="text-xl sm:text-2xl font-bold text-gray-900">{formatCurrency(invoiceData.buildingTotal.totalUsage)} kWh</p>
+                      </div>
+                    </div>
+                    <div className="border-t pt-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">기본료:</span>
+                          <span>{formatCurrency(invoiceData.buildingTotal.basicFee)}원</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">전력량요금:</span>
+                          <span>{formatCurrency(invoiceData.buildingTotal.powerFee)}원</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">기후환경요금:</span>
+                          <span>{formatCurrency(invoiceData.buildingTotal.climateFee)}원</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">연료비조정액:</span>
+                          <span>{formatCurrency(invoiceData.buildingTotal.fuelFee)}원</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 납부 정보 탭 */}
+            {activeTab === 'payment' && (
+              <div>
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">납부 정보</h3>
+
+                <div className="mb-6">
+                  <h4 className="text-sm sm:text-md font-medium text-gray-700 mb-3">입금 계좌</h4>
+                  <div className="bg-blue-50 rounded-lg p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                      <div className="mb-3 sm:mb-0">
+                        <p className="text-xs sm:text-sm text-blue-600 mb-1">입금 계좌번호</p>
+                        <p className="text-lg sm:text-xl font-bold text-blue-900">
+                          {invoiceData.paymentInfo.bankName} {invoiceData.paymentInfo.accountNumber}
+                        </p>
+                        <p className="text-xs sm:text-sm text-blue-600 mt-1">예금주: {invoiceData.paymentInfo.accountHolder}</p>
+                      </div>
+                      <button
+                        onClick={copyAccountNumber}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center text-sm"
+                      >
+                        {copied ? (
+                          <>
+                            <CheckIcon className="h-4 w-4 mr-1" />
+                            복사됨
+                          </>
+                        ) : (
+                          <>
+                            <ClipboardDocumentIcon className="h-4 w-4 mr-1" />
+                            계좌 복사
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {invoiceData.unpaidAmount > 0 && (
+                  <div className="mb-6">
+                    <h4 className="text-sm sm:text-md font-medium text-gray-700 mb-3">미납 내역</h4>
+                    <div className="bg-red-50 rounded-lg p-4">
+                      <div className="mb-3">
+                        <p className="text-xs sm:text-sm text-red-600">총 미납금액</p>
+                        <p className="text-xl sm:text-2xl font-bold text-red-700">{formatCurrency(invoiceData.unpaidAmount)}원</p>
+                      </div>
+                      <table className="min-w-full">
+                        <thead>
+                          <tr className="text-xs sm:text-sm text-red-600">
+                            <th className="text-left pb-2">청구월</th>
+                            <th className="text-right pb-2">미납금액</th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-xs sm:text-sm">
+                          {invoiceData.unpaidDetails.map((item, index) => (
+                            <tr key={index} className="border-t border-red-200">
+                              <td className="py-2 text-red-700">{item.month}</td>
+                              <td className="py-2 text-right text-red-700">{formatCurrency(item.amount)}원</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <h4 className="text-sm sm:text-md font-medium text-gray-700 mb-3">납부 안내</h4>
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-xs sm:text-sm text-gray-600">
+                    {invoiceData.notices && invoiceData.notices.map((notice, index) => (
+                      <p key={index}>{notice}</p>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
