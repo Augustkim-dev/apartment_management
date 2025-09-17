@@ -67,11 +67,11 @@ coloco-apartment/
 ## 📝 개발 단계
 
 1. ✅ **Phase 1**: MySQL 연결 및 테이블 생성
-2. ⏳ **Phase 2**: PDF/Excel 파싱 API
-3. ⏳ **Phase 3**: 계산 엔진 구현
-4. ⏳ **Phase 4**: 대시보드 UI 개발
-5. ⏳ **Phase 5**: 인증 시스템 구현
-6. ⏳ **Phase 6**: Vercel 배포
+2. ✅ **Phase 2**: PDF/Excel 파싱 API
+3. ✅ **Phase 3**: 계산 엔진 구현
+4. ✅ **Phase 4**: 대시보드 UI 개발
+5. ✅ **Phase 5**: 인증 시스템 구현
+6. 🚀 **Phase 6**: Vercel 배포 (진행중)
 
 ## 🔧 주요 명령어
 
