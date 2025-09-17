@@ -1,4 +1,11 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import {
+  DocumentTextIcon,
+  ChartBarIcon,
+  BuildingOfficeIcon,
+  CurrencyDollarIcon
+} from "@heroicons/react/24/outline";
 
 export default function Home() {
   redirect("/login");
