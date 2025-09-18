@@ -4,14 +4,17 @@ import {
   UnitBillCalculation,
   CalculationOptions
 } from '@/types/calculation';
+import { ConfigService } from '@/lib/services/config-service';
 
 /**
  * 전기료 계산 엔진
  */
 export class BillCalculator {
   private options: Required<CalculationOptions>;
+  private configService: ConfigService;
 
   constructor(options: CalculationOptions = {}) {
+    this.configService = ConfigService.getInstance();
     this.options = {
       roundingUnit: options.roundingUnit ?? 10,
       toleranceAmount: options.toleranceAmount ?? 10,
@@ -25,7 +28,7 @@ export class BillCalculator {
   /**
    * 메인 계산 메서드
    */
-  calculate(input: CalculationInput): CalculationResult {
+  async calculate(input: CalculationInput): Promise<CalculationResult> {
     const { totalCharges, unitUsages, billingPeriod } = input;
 
     // 1. 사용량이 있는 호실만 필터링 (공실 제외)
@@ -36,8 +39,19 @@ export class BillCalculator {
     // 2. 총 사용량 계산 - PDF의 전체 사용량 사용 (공용 포함)
     const unitTotalUsage = activeUnits.reduce((sum, unit) => sum + unit.usage, 0);
 
-    // PDF에서 파싱한 전체 사용량 (공용 포함) - 기본값 25,231 kWh
-    const buildingTotalUsage = (input as any).pdfTotalUsage || 25231;
+    // ConfigService에서 기본 총 사용량 가져오기, 실패시 하드코딩 값 사용
+    let defaultTotalUsage = 25231;
+    try {
+      const configValue = await this.configService.get('building.total_usage_default');
+      if (configValue) {
+        defaultTotalUsage = Number(configValue);
+      }
+    } catch (error) {
+      console.error('Failed to get default total usage from config:', error);
+    }
+
+    // PDF에서 파싱한 전체 사용량 (공용 포함) 또는 기본값 사용
+    const buildingTotalUsage = (input as any).pdfTotalUsage || defaultTotalUsage;
 
     // 실제 계산에 사용할 총 사용량
     const totalUsage = buildingTotalUsage;

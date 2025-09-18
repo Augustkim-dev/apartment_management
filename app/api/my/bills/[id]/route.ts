@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import pool from '@/lib/db';
 import { UnitInvoiceResponse } from '@/types/database';
+import { ConfigService } from '@/lib/services/config-service';
 
 export async function GET(
   request: NextRequest,
@@ -118,14 +119,27 @@ export async function GET(
 
       const totalUnpaid = unpaidDetails.reduce((sum, item) => sum + item.amount, 0);
 
-      // 4. 안내사항 (기본 안내사항 제공)
-      const notices = [
-        '• 전기요금은 매월 말일까지 납부해 주시기 바랍니다.',
-        '• 미납 시 다음달 5일부터 연체료가 부과됩니다.',
-        '• 자동이체 신청은 관리사무소로 문의해 주세요.',
-        '• 요금 문의: 관리사무소 (02-1234-5678)',
-        '• 계량기 검침일: 매월 9일~10일'
-      ];
+      // 4. ConfigService에서 안내사항 가져오기
+      const configService = ConfigService.getInstance();
+      let notices: string[] = [];
+
+      try {
+        const noticeData = await configService.getNotices();
+        notices = noticeData
+          .filter(n => n.active)
+          .sort((a, b) => a.order - b.order)
+          .map(n => n.text);
+      } catch (error) {
+        console.error('Failed to load notices from config:', error);
+        // 폴백: 기본 안내사항 제공
+        notices = [
+          '• 전기요금은 매월 말일까지 납부해 주시기 바랍니다.',
+          '• 미납 시 다음달 5일부터 연체료가 부과됩니다.',
+          '• 자동이체 신청은 관리사무소로 문의해 주세요.',
+          '• 요금 문의: 관리사무소 (02-1234-5678)',
+          '• 계량기 검침일: 매월 9일~10일'
+        ];
+      }
 
       // 5. 응답 데이터 구성
       const response: UnitInvoiceResponse = {
@@ -211,14 +225,20 @@ export async function GET(
           contractType: unitBill.contract_type || '일반용(을)고압A선택2',
           contractPower: unitBill.contract_power || 700,
           appliedPower: unitBill.applied_power || 210,
-          basicFeeRate: 8320 // 기본요금 단가
+          basicFeeRate: Number(await configService.get('billing.basic_fee_rate').catch(() => 8320)) || 8320
         },
 
-        // 납부 정보
+        // 납부 정보 - ConfigService에서 가져오기 시도, 실패시 DB 값 또는 폴백 사용
         paymentInfo: {
-          bankName: unitBill.bank_name || '신한은행',
-          accountNumber: unitBill.account_number || '100-035-727568',
-          accountHolder: unitBill.account_holder || '㈜코로코',
+          bankName: unitBill.bank_name ||
+                   await configService.get('payment.bank_name').catch(() => '신한은행') ||
+                   '신한은행',
+          accountNumber: unitBill.account_number ||
+                        await configService.get('payment.account_number').catch(() => '100-035-727568') ||
+                        '100-035-727568',
+          accountHolder: unitBill.account_holder ||
+                        await configService.get('payment.account_holder').catch(() => '㈜코로코') ||
+                        '㈜코로코',
           dueDate: unitBill.due_date ?
             new Date(unitBill.due_date).toISOString().split('T')[0] :
             new Date(unitBill.bill_year, unitBill.bill_month, 0).toISOString().split('T')[0]

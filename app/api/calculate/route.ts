@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       targetUnitTotal: 2444070      // 실제 Excel Q열 합계
     });
 
-    const result = calculator.calculate(calculationInput);
+    const result = await calculator.calculate(calculationInput);
 
     // 결과 요약
     const summary = calculator.formatSummary(result);
