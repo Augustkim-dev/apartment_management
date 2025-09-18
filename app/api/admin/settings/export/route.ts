@@ -1,14 +1,15 @@
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { configService } from '@/lib/services/config-service';
 
 // GET: 설정 내보내기 (JSON 형태로)
 export async function GET() {
   try {
-    // TODO: 인증 확인 추가 필요
-    // const session = await getServerSession(authOptions);
-    // if (!session || session.user.role !== 'admin') {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    // }
+    const session = await getServerSession(authOptions);
+    if (!session || session.user.role !== 'admin') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const configs = await configService.export();
 
