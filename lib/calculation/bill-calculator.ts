@@ -4,17 +4,15 @@ import {
   UnitBillCalculation,
   CalculationOptions
 } from '@/types/calculation';
-import { ConfigService } from '@/lib/services/config-service';
+import { configService } from '@/lib/services/config-service';
 
 /**
  * 전기료 계산 엔진
  */
 export class BillCalculator {
   private options: Required<CalculationOptions>;
-  private configService: ConfigService;
 
   constructor(options: CalculationOptions = {}) {
-    this.configService = ConfigService.getInstance();
     this.options = {
       roundingUnit: options.roundingUnit ?? 10,
       toleranceAmount: options.toleranceAmount ?? 10,
@@ -42,7 +40,7 @@ export class BillCalculator {
     // ConfigService에서 기본 총 사용량 가져오기, 실패시 하드코딩 값 사용
     let defaultTotalUsage = 25231;
     try {
-      const configValue = await this.configService.get('building.total_usage_default');
+      const configValue = await configService.get('building.total_usage_default');
       if (configValue) {
         defaultTotalUsage = Number(configValue);
       }

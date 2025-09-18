@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { UnitInvoiceResponse } from '@/types/database';
-import { ConfigService } from '@/lib/services/config-service';
+import { configService } from '@/lib/services/config-service';
 
 export async function GET(
   request: NextRequest,
@@ -123,7 +123,6 @@ export async function GET(
     let notices = (noticeRows as any[]).map(row => row.notice_content);
 
     // ConfigService에서 안내사항 가져오기 (DB에 없는 경우)
-    const configService = ConfigService.getInstance();
     if (notices.length === 0) {
       try {
         const noticeData = await configService.getNotices();

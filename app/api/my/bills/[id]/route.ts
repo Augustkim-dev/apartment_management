@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import pool from '@/lib/db';
 import { UnitInvoiceResponse } from '@/types/database';
-import { ConfigService } from '@/lib/services/config-service';
+import { configService } from '@/lib/services/config-service';
 
 export async function GET(
   request: NextRequest,
@@ -120,7 +120,6 @@ export async function GET(
       const totalUnpaid = unpaidDetails.reduce((sum, item) => sum + item.amount, 0);
 
       // 4. ConfigService에서 안내사항 가져오기
-      const configService = ConfigService.getInstance();
       let notices: string[] = [];
 
       try {
