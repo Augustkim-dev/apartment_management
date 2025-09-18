@@ -16,7 +16,9 @@ import {
   TrashIcon,
   ExclamationTriangleIcon,
   InformationCircleIcon,
-  BellAlertIcon
+  BellAlertIcon,
+  ChevronUpIcon,
+  ChevronDownIcon
 } from '@heroicons/react/24/outline';
 
 interface Config {
@@ -24,7 +26,7 @@ interface Config {
 }
 
 interface Notice {
-  order: number;
+  display_order: number;
   text: string;
   type: 'info' | 'warning' | 'important';
   active: boolean;
@@ -182,8 +184,11 @@ export default function SettingsPage() {
   };
 
   const addNotice = () => {
+    const maxOrder = notices.length > 0
+      ? Math.max(...notices.map(n => n.display_order))
+      : 0;
     setNotices(prev => [...prev, {
-      order: prev.length + 1,
+      display_order: maxOrder + 1,
       text: '',
       type: 'info',
       active: true
@@ -197,10 +202,42 @@ export default function SettingsPage() {
   };
 
   const deleteNotice = (index: number) => {
-    setNotices(prev => prev.filter((_, i) => i !== index).map((notice, i) => ({
-      ...notice,
-      order: i + 1
-    })));
+    setNotices(prev => {
+      const filtered = prev.filter((_, i) => i !== index);
+      // Re-order display_order to be sequential
+      return filtered.map((notice, i) => ({
+        ...notice,
+        display_order: i + 1
+      }));
+    });
+  };
+
+  const moveNoticeUp = (index: number) => {
+    if (index === 0) return;
+    setNotices(prev => {
+      const newNotices = [...prev];
+      // Swap display_order values
+      const tempOrder = newNotices[index - 1].display_order;
+      newNotices[index - 1].display_order = newNotices[index].display_order;
+      newNotices[index].display_order = tempOrder;
+      // Swap positions in array
+      [newNotices[index - 1], newNotices[index]] = [newNotices[index], newNotices[index - 1]];
+      return newNotices;
+    });
+  };
+
+  const moveNoticeDown = (index: number) => {
+    setNotices(prev => {
+      if (index === prev.length - 1) return prev;
+      const newNotices = [...prev];
+      // Swap display_order values
+      const tempOrder = newNotices[index + 1].display_order;
+      newNotices[index + 1].display_order = newNotices[index].display_order;
+      newNotices[index].display_order = tempOrder;
+      // Swap positions in array
+      [newNotices[index], newNotices[index + 1]] = [newNotices[index + 1], newNotices[index]];
+      return newNotices;
+    });
   };
 
   const getNoticeIcon = (type: string) => {
@@ -658,6 +695,12 @@ export default function SettingsPage() {
                   {notices.map((notice, index) => (
                     <li key={index} className="py-4">
                       <div className="flex items-start space-x-4">
+                        {/* 순서 번호 표시 */}
+                        <div className="flex-shrink-0 flex items-center">
+                          <span className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-gray-100 text-sm font-medium text-gray-700">
+                            {notice.display_order}
+                          </span>
+                        </div>
                         <div className="flex-shrink-0">
                           {getNoticeIcon(notice.type)}
                         </div>
@@ -671,6 +714,25 @@ export default function SettingsPage() {
                           />
                         </div>
                         <div className="flex items-center space-x-2">
+                          {/* 순서 변경 버튼 */}
+                          <div className="flex flex-col">
+                            <button
+                              onClick={() => moveNoticeUp(index)}
+                              disabled={index === 0}
+                              className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="위로 이동"
+                            >
+                              <ChevronUpIcon className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => moveNoticeDown(index)}
+                              disabled={index === notices.length - 1}
+                              className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="아래로 이동"
+                            >
+                              <ChevronDownIcon className="h-4 w-4" />
+                            </button>
+                          </div>
                           <select
                             value={notice.type}
                             onChange={(e) => updateNotice(index, 'type', e.target.value)}

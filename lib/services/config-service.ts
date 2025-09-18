@@ -16,7 +16,7 @@ interface ConfigRecord {
 }
 
 interface Notice {
-  order: number;
+  display_order: number;
   text: string;
   type: 'info' | 'warning' | 'important';
   active: boolean;
@@ -268,8 +268,8 @@ class ConfigService {
         }
       }
 
-      // 순서대로 정렬
-      processedNotices.sort((a, b) => a.order - b.order);
+      // display_order 순서대로 정렬
+      processedNotices.sort((a, b) => a.display_order - b.display_order);
 
       return processedNotices;
     } catch (error) {
