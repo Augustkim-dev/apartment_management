@@ -33,7 +33,10 @@ export async function GET(request: NextRequest) {
         u.updated_at
       FROM users u
       LEFT JOIN units ON u.unit_id = units.id
-      ORDER BY u.role DESC, u.status DESC, u.username
+      ORDER BY
+        CASE WHEN units.unit_number IS NULL THEN 1 ELSE 0 END,
+        CAST(units.unit_number AS UNSIGNED),
+        u.username
     `);
 
     return NextResponse.json({ success: true, users });
