@@ -115,6 +115,23 @@ export async function POST(request: Request) {
     const data = await request.json();
     const { billYear, billMonth, totalAmount, totalUsage, basicFee, powerFee, climateFee, fuelFee, vat, powerFund, tvLicenseFee, roundDown, billingPeriodStart, billingPeriodEnd } = data;
 
+    // Format dates for MySQL (YYYY-MM-DD HH:MM:SS)
+    const formatDateForMySQL = (dateStr: string | undefined): string => {
+      if (!dateStr) {
+        // Default to first and last day of the billing month
+        const defaultStart = new Date(billYear, billMonth - 1, 1);
+        const defaultEnd = new Date(billYear, billMonth, 0);
+        return billMonth === new Date().getMonth() + 1 && billYear === new Date().getFullYear()
+          ? new Date().toISOString().slice(0, 19).replace('T', ' ')
+          : (dateStr === billingPeriodEnd ? defaultEnd : defaultStart).toISOString().slice(0, 19).replace('T', ' ');
+      }
+      // Convert ISO string to MySQL format
+      return new Date(dateStr).toISOString().slice(0, 19).replace('T', ' ');
+    };
+
+    const formattedStartDate = formatDateForMySQL(billingPeriodStart);
+    const formattedEndDate = formatDateForMySQL(billingPeriodEnd);
+
     // 기존 청구서 확인
     const existing = await query(
       'SELECT id FROM monthly_bills WHERE bill_year = ? AND bill_month = ?',
@@ -144,7 +161,7 @@ export async function POST(request: Request) {
         billYear, billMonth, totalAmount, totalUsage,
         basicFee, powerFee, climateFee, fuelFee,
         vat, powerFund, tvLicenseFee || 0, roundDown || 0,
-        billingPeriodStart || new Date(), billingPeriodEnd || new Date()
+        formattedStartDate, formattedEndDate
       ]);
 
       message = `${billYear}년 ${billMonth}월 청구서가 재생성되었습니다.`;
@@ -161,7 +178,7 @@ export async function POST(request: Request) {
         billYear, billMonth, totalAmount, totalUsage,
         basicFee, powerFee, climateFee, fuelFee,
         vat, powerFund, tvLicenseFee || 0, roundDown || 0,
-        billingPeriodStart || new Date(), billingPeriodEnd || new Date()
+        formattedStartDate, formattedEndDate
       ]);
 
       message = '청구서가 생성되었습니다.';

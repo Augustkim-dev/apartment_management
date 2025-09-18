@@ -669,9 +669,8 @@ export default function BillDetailPage() {
               {filteredUnitBills.map((unit) => {
                 const totalWithUnpaid = Math.floor(unit.totalAmount) + (unit.unpaidAmount || 0);
                 return (
-                <>
+                <React.Fragment key={unit.id}>
                   <tr
-                    key={unit.id}
                     className="hover:bg-gray-50"
                   >
                     <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
@@ -822,7 +821,7 @@ export default function BillDetailPage() {
                       </td>
                     </tr>
                   )}
-                </>
+                </React.Fragment>
               );
               })}
             </tbody>
