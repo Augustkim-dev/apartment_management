@@ -1,14 +1,22 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Tab } from '@headlessui/react';
+import toast, { Toaster } from 'react-hot-toast';
 import {
   BuildingOfficeIcon,
   CreditCardIcon,
   CurrencyDollarIcon,
   DocumentTextIcon,
   ArrowDownTrayIcon,
-  ArrowUpTrayIcon
+  ArrowUpTrayIcon,
+  PhoneIcon,
+  EnvelopeIcon,
+  HomeIcon,
+  PlusIcon,
+  TrashIcon,
+  ExclamationTriangleIcon,
+  InformationCircleIcon,
+  BellAlertIcon
 } from '@heroicons/react/24/outline';
 
 interface Config {
@@ -22,16 +30,11 @@ interface Notice {
   active: boolean;
 }
 
-function classNames(...classes: string[]) {
-  return classes.filter(Boolean).join(' ');
-}
-
 export default function SettingsPage() {
   const [configs, setConfigs] = useState<{ [category: string]: Config }>({});
   const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState('');
+  const [savingSection, setSavingSection] = useState<string | null>(null);
 
   useEffect(() => {
     fetchConfigs();
@@ -52,22 +55,24 @@ export default function SettingsPage() {
       }
     } catch (error) {
       console.error('Failed to fetch configs:', error);
-      setMessage('설정을 불러오는데 실패했습니다.');
+      toast.error('설정을 불러오는데 실패했습니다.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSave = async (category: string) => {
-    setSaving(true);
-    setMessage('');
+  const handleSave = async (categories: string[]) => {
+    const sectionName = categories.join('-');
+    setSavingSection(sectionName);
 
     try {
       const categoryConfigs: { [key: string]: any } = {};
 
       // 카테고리별 설정값 수집
-      Object.entries(configs[category] || {}).forEach(([key, value]) => {
-        categoryConfigs[`${category}.${key}`] = value;
+      categories.forEach(category => {
+        Object.entries(configs[category] || {}).forEach(([key, value]) => {
+          categoryConfigs[`${category}.${key}`] = value;
+        });
       });
 
       const response = await fetch('/api/admin/settings', {
@@ -81,21 +86,20 @@ export default function SettingsPage() {
       const data = await response.json();
 
       if (data.success) {
-        setMessage('설정이 저장되었습니다.');
+        toast.success('설정이 저장되었습니다.');
       } else {
         throw new Error(data.error);
       }
     } catch (error) {
       console.error('Failed to save configs:', error);
-      setMessage('설정 저장에 실패했습니다.');
+      toast.error('설정 저장에 실패했습니다.');
     } finally {
-      setSaving(false);
+      setSavingSection(null);
     }
   };
 
   const handleNoticesSave = async () => {
-    setSaving(true);
-    setMessage('');
+    setSavingSection('notices');
 
     try {
       const response = await fetch('/api/admin/settings/notices', {
@@ -109,15 +113,15 @@ export default function SettingsPage() {
       const data = await response.json();
 
       if (data.success) {
-        setMessage('납부 안내가 저장되었습니다.');
+        toast.success('납부 안내가 저장되었습니다.');
       } else {
         throw new Error(data.error);
       }
     } catch (error) {
       console.error('Failed to save notices:', error);
-      setMessage('납부 안내 저장에 실패했습니다.');
+      toast.error('납부 안내 저장에 실패했습니다.');
     } finally {
-      setSaving(false);
+      setSavingSection(null);
     }
   };
 
@@ -133,10 +137,10 @@ export default function SettingsPage() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      setMessage('설정을 내보냈습니다.');
+      toast.success('설정을 내보냈습니다.');
     } catch (error) {
       console.error('Failed to export configs:', error);
-      setMessage('설정 내보내기에 실패했습니다.');
+      toast.error('설정 내보내기에 실패했습니다.');
     }
   };
 
@@ -156,14 +160,14 @@ export default function SettingsPage() {
       const data = await response.json();
 
       if (data.success) {
-        setMessage(`${data.count}개의 설정을 가져왔습니다.`);
+        toast.success(`${data.count}개의 설정을 가져왔습니다.`);
         await fetchConfigs(); // 리로드
       } else {
         throw new Error(data.error);
       }
     } catch (error) {
       console.error('Failed to import configs:', error);
-      setMessage('설정 가져오기에 실패했습니다.');
+      toast.error('설정 가져오기에 실패했습니다.');
     }
   };
 
@@ -199,40 +203,45 @@ export default function SettingsPage() {
     })));
   };
 
+  const getNoticeIcon = (type: string) => {
+    switch (type) {
+      case 'warning':
+        return <ExclamationTriangleIcon className="h-5 w-5 text-yellow-500" />;
+      case 'important':
+        return <BellAlertIcon className="h-5 w-5 text-red-500" />;
+      default:
+        return <InformationCircleIcon className="h-5 w-5 text-blue-500" />;
+    }
+  };
+
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-96">
-        <div className="text-gray-500">설정을 불러오는 중...</div>
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
-  const tabs = [
-    { name: '기본 정보', icon: BuildingOfficeIcon, category: ['building', 'contact'] },
-    { name: '결제 정보', icon: CreditCardIcon, category: ['payment'] },
-    { name: '요금 설정', icon: CurrencyDollarIcon, category: ['billing', 'contract'] },
-    { name: '납부 안내', icon: DocumentTextIcon, category: ['notices'] },
-  ];
-
   return (
-    <div className="px-4 sm:px-6 lg:px-8">
+    <div>
+      <Toaster position="top-right" />
+
+      {/* 페이지 헤더 */}
       <div className="sm:flex sm:items-center sm:justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">환경설정 관리</h1>
-          <p className="mt-2 text-sm text-gray-700">
-            시스템 전체 설정을 관리합니다.
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900">환경설정 관리</h1>
+          <p className="mt-1 text-sm text-gray-600">시스템 전체 설정을 관리합니다</p>
         </div>
-        <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none space-x-2">
+        <div className="mt-4 sm:mt-0 flex space-x-2">
           <button
             onClick={handleExport}
-            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
-            <ArrowDownTrayIcon className="h-4 w-4 mr-1" />
+            <ArrowDownTrayIcon className="h-5 w-5 mr-2" />
             내보내기
           </button>
-          <label className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer">
-            <ArrowUpTrayIcon className="h-4 w-4 mr-1" />
+          <label className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer">
+            <ArrowUpTrayIcon className="h-5 w-5 mr-2" />
             가져오기
             <input
               type="file"
@@ -244,44 +253,22 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {message && (
-        <div className={`mb-4 p-4 rounded-md ${
-          message.includes('실패') ? 'bg-red-50 text-red-800' : 'bg-green-50 text-green-800'
-        }`}>
-          {message}
-        </div>
-      )}
+      {/* 카드 기반 섹션들 */}
+      <div className="space-y-6">
 
-      <Tab.Group>
-        <Tab.List className="flex space-x-1 rounded-xl bg-blue-900/20 p-1">
-          {tabs.map((tab) => (
-            <Tab
-              key={tab.name}
-              className={({ selected }) =>
-                classNames(
-                  'w-full rounded-lg py-2.5 text-sm font-medium leading-5',
-                  'ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2',
-                  selected
-                    ? 'bg-white text-blue-700 shadow'
-                    : 'text-blue-100 hover:bg-white/[0.12] hover:text-white'
-                )
-              }
-            >
-              <div className="flex items-center justify-center">
-                <tab.icon className="h-5 w-5 mr-2" />
-                {tab.name}
-              </div>
-            </Tab>
-          ))}
-        </Tab.List>
-        <Tab.Panels className="mt-2">
-          {/* 기본 정보 탭 */}
-          <Tab.Panel className="rounded-xl bg-white p-3">
+        {/* 기본 정보 카드 */}
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-4 py-5 sm:p-6">
+            <div className="flex items-center mb-6">
+              <BuildingOfficeIcon className="h-6 w-6 text-gray-400 mr-3" />
+              <h2 className="text-lg font-medium text-gray-900">기본 정보</h2>
+            </div>
+
             <div className="space-y-6">
               {/* 건물 정보 */}
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">건물 정보</h3>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <h3 className="text-sm font-medium text-gray-900 mb-4">건물 정보</h3>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">
                       건물명
@@ -290,7 +277,7 @@ export default function SettingsPage() {
                       type="text"
                       value={configs.building?.name || ''}
                       onChange={(e) => updateConfigValue('building', 'name', e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                     />
                   </div>
                   <div>
@@ -301,7 +288,7 @@ export default function SettingsPage() {
                       type="text"
                       value={configs.building?.type || ''}
                       onChange={(e) => updateConfigValue('building', 'type', e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                     />
                   </div>
                   <div>
@@ -312,7 +299,7 @@ export default function SettingsPage() {
                       type="number"
                       value={configs.building?.unit_count || ''}
                       onChange={(e) => updateConfigValue('building', 'unit_count', e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                     />
                   </div>
                   <div>
@@ -323,72 +310,79 @@ export default function SettingsPage() {
                       type="number"
                       value={configs.building?.total_usage_default || ''}
                       onChange={(e) => updateConfigValue('building', 'total_usage_default', e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                     />
                   </div>
                 </div>
               </div>
 
               {/* 연락처 정보 */}
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">연락처 정보</h3>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="border-t pt-6">
+                <h3 className="text-sm font-medium text-gray-900 mb-4">연락처 정보</h3>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">
+                      <PhoneIcon className="inline h-4 w-4 mr-1 text-gray-400" />
                       관리사무소 전화번호
                     </label>
                     <input
                       type="text"
                       value={configs.contact?.management_phone || ''}
                       onChange={(e) => updateConfigValue('contact', 'management_phone', e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">
+                      <EnvelopeIcon className="inline h-4 w-4 mr-1 text-gray-400" />
                       관리사무소 이메일
                     </label>
                     <input
                       type="email"
                       value={configs.contact?.management_email || ''}
                       onChange={(e) => updateConfigValue('contact', 'management_email', e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">
+                      <PhoneIcon className="inline h-4 w-4 mr-1 text-gray-400" />
                       비상 연락처
                     </label>
                     <input
                       type="text"
                       value={configs.contact?.emergency_phone || ''}
                       onChange={(e) => updateConfigValue('contact', 'emergency_phone', e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                     />
                   </div>
                 </div>
               </div>
-
-              <div className="flex justify-end">
-                <button
-                  onClick={() => {
-                    handleSave('building');
-                    handleSave('contact');
-                  }}
-                  disabled={saving}
-                  className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-                >
-                  {saving ? '저장 중...' : '저장'}
-                </button>
-              </div>
             </div>
-          </Tab.Panel>
 
-          {/* 결제 정보 탭 */}
-          <Tab.Panel className="rounded-xl bg-white p-3">
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => handleSave(['building', 'contact'])}
+                disabled={savingSection === 'building-contact'}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+              >
+                {savingSection === 'building-contact' ? '저장 중...' : '저장'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* 결제 정보 카드 */}
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-4 py-5 sm:p-6">
+            <div className="flex items-center mb-6">
+              <CreditCardIcon className="h-6 w-6 text-gray-400 mr-3" />
+              <h2 className="text-lg font-medium text-gray-900">결제 정보</h2>
+            </div>
+
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">주 계좌 정보</h3>
+                <h3 className="text-sm font-medium text-gray-900 mb-4">주 계좌 정보</h3>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">
@@ -398,7 +392,7 @@ export default function SettingsPage() {
                       type="text"
                       value={configs.payment?.bank_name || ''}
                       onChange={(e) => updateConfigValue('payment', 'bank_name', e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                     />
                   </div>
                   <div>
@@ -409,7 +403,7 @@ export default function SettingsPage() {
                       type="text"
                       value={configs.payment?.account_number || ''}
                       onChange={(e) => updateConfigValue('payment', 'account_number', e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                     />
                   </div>
                   <div>
@@ -420,14 +414,14 @@ export default function SettingsPage() {
                       type="text"
                       value={configs.payment?.account_holder || ''}
                       onChange={(e) => updateConfigValue('payment', 'account_holder', e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                     />
                   </div>
                 </div>
               </div>
 
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">대체 계좌 정보</h3>
+              <div className="border-t pt-6">
+                <h3 className="text-sm font-medium text-gray-900 mb-4">대체 계좌 정보</h3>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">
@@ -437,7 +431,7 @@ export default function SettingsPage() {
                       type="text"
                       value={configs.payment?.bank_name_alt || ''}
                       onChange={(e) => updateConfigValue('payment', 'bank_name_alt', e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                     />
                   </div>
                   <div>
@@ -448,7 +442,7 @@ export default function SettingsPage() {
                       type="text"
                       value={configs.payment?.account_number_alt || ''}
                       onChange={(e) => updateConfigValue('payment', 'account_number_alt', e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                     />
                   </div>
                   <div>
@@ -459,29 +453,36 @@ export default function SettingsPage() {
                       type="text"
                       value={configs.payment?.account_holder_alt || ''}
                       onChange={(e) => updateConfigValue('payment', 'account_holder_alt', e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                     />
                   </div>
                 </div>
               </div>
-
-              <div className="flex justify-end">
-                <button
-                  onClick={() => handleSave('payment')}
-                  disabled={saving}
-                  className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-                >
-                  {saving ? '저장 중...' : '저장'}
-                </button>
-              </div>
             </div>
-          </Tab.Panel>
 
-          {/* 요금 설정 탭 */}
-          <Tab.Panel className="rounded-xl bg-white p-3">
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => handleSave(['payment'])}
+                disabled={savingSection === 'payment'}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+              >
+                {savingSection === 'payment' ? '저장 중...' : '저장'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* 요금 설정 카드 */}
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-4 py-5 sm:p-6">
+            <div className="flex items-center mb-6">
+              <CurrencyDollarIcon className="h-6 w-6 text-gray-400 mr-3" />
+              <h2 className="text-lg font-medium text-gray-900">요금 설정</h2>
+            </div>
+
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">계약 정보</h3>
+                <h3 className="text-sm font-medium text-gray-900 mb-4">계약 정보</h3>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">
@@ -491,7 +492,7 @@ export default function SettingsPage() {
                       type="text"
                       value={configs.contract?.type || ''}
                       onChange={(e) => updateConfigValue('contract', 'type', e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                     />
                   </div>
                   <div>
@@ -502,7 +503,7 @@ export default function SettingsPage() {
                       type="number"
                       value={configs.contract?.power || ''}
                       onChange={(e) => updateConfigValue('contract', 'power', e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                     />
                   </div>
                   <div>
@@ -513,15 +514,15 @@ export default function SettingsPage() {
                       type="number"
                       value={configs.contract?.applied_power || ''}
                       onChange={(e) => updateConfigValue('contract', 'applied_power', e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                     />
                   </div>
                 </div>
               </div>
 
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">요금 정보</h3>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="border-t pt-6">
+                <h3 className="text-sm font-medium text-gray-900 mb-4">요금 정보</h3>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">
                       kW당 기본료
@@ -530,7 +531,7 @@ export default function SettingsPage() {
                       type="number"
                       value={configs.billing?.basic_fee_rate || ''}
                       onChange={(e) => updateConfigValue('billing', 'basic_fee_rate', e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                     />
                   </div>
                   <div>
@@ -542,7 +543,7 @@ export default function SettingsPage() {
                       step="0.1"
                       value={configs.billing?.late_fee_rate || ''}
                       onChange={(e) => updateConfigValue('billing', 'late_fee_rate', e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                     />
                   </div>
                   <div>
@@ -555,7 +556,7 @@ export default function SettingsPage() {
                       max="31"
                       value={configs.billing?.payment_due_day || ''}
                       onChange={(e) => updateConfigValue('billing', 'payment_due_day', e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                     />
                   </div>
                   <div>
@@ -568,7 +569,7 @@ export default function SettingsPage() {
                       max="31"
                       value={configs.billing?.meter_reading_start || ''}
                       onChange={(e) => updateConfigValue('billing', 'meter_reading_start', e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                     />
                   </div>
                   <div>
@@ -581,7 +582,7 @@ export default function SettingsPage() {
                       max="31"
                       value={configs.billing?.meter_reading_end || ''}
                       onChange={(e) => updateConfigValue('billing', 'meter_reading_end', e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                     />
                   </div>
                   <div>
@@ -594,97 +595,128 @@ export default function SettingsPage() {
                       max="31"
                       value={configs.billing?.late_fee_start_day || ''}
                       onChange={(e) => updateConfigValue('billing', 'late_fee_start_day', e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                     />
                   </div>
                 </div>
               </div>
-
-              <div className="flex justify-end">
-                <button
-                  onClick={() => {
-                    handleSave('billing');
-                    handleSave('contract');
-                  }}
-                  disabled={saving}
-                  className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-                >
-                  {saving ? '저장 중...' : '저장'}
-                </button>
-              </div>
             </div>
-          </Tab.Panel>
 
-          {/* 납부 안내 탭 */}
-          <Tab.Panel className="rounded-xl bg-white p-3">
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">납부 안내 문구</h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  템플릿 변수: {'{관리사무소}'}, {'{납부일}'}, {'{연체시작일}'}, {'{검침시작}'}, {'{검침종료}'}, {'{건물명}'}
-                </p>
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => handleSave(['billing', 'contract'])}
+                disabled={savingSection === 'billing-contract'}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+              >
+                {savingSection === 'billing-contract' ? '저장 중...' : '저장'}
+              </button>
+            </div>
+          </div>
+        </div>
 
-                <div className="space-y-4">
+        {/* 납부 안내 카드 */}
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-4 py-5 sm:p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center">
+                <DocumentTextIcon className="h-6 w-6 text-gray-400 mr-3" />
+                <h2 className="text-lg font-medium text-gray-900">납부 안내</h2>
+              </div>
+              <button
+                onClick={addNotice}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <PlusIcon className="h-4 w-4 mr-2" />
+                안내 추가
+              </button>
+            </div>
+
+            {/* 템플릿 변수 안내 */}
+            <div className="bg-gray-50 rounded-md p-3 mb-6">
+              <p className="text-sm text-gray-600">
+                <InformationCircleIcon className="inline h-4 w-4 mr-1" />
+                <span className="font-medium">템플릿 변수:</span>
+                <code className="mx-1 px-2 py-1 bg-gray-200 rounded text-xs">{'{관리사무소}'}</code>
+                <code className="mx-1 px-2 py-1 bg-gray-200 rounded text-xs">{'{납부일}'}</code>
+                <code className="mx-1 px-2 py-1 bg-gray-200 rounded text-xs">{'{연체시작일}'}</code>
+                <code className="mx-1 px-2 py-1 bg-gray-200 rounded text-xs">{'{검침시작}'}</code>
+                <code className="mx-1 px-2 py-1 bg-gray-200 rounded text-xs">{'{검침종료}'}</code>
+                <code className="mx-1 px-2 py-1 bg-gray-200 rounded text-xs">{'{건물명}'}</code>
+              </p>
+            </div>
+
+            {/* 납부 안내 목록 */}
+            {notices.length === 0 ? (
+              <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-400" />
+                <p className="mt-2 text-sm text-gray-500">등록된 납부 안내가 없습니다.</p>
+                <p className="mt-1 text-sm text-gray-500">새로운 안내를 추가해주세요.</p>
+              </div>
+            ) : (
+              <div className="overflow-hidden">
+                <ul className="divide-y divide-gray-200">
                   {notices.map((notice, index) => (
-                    <div key={index} className="flex gap-4 items-start">
-                      <div className="flex-1">
-                        <textarea
-                          value={notice.text}
-                          onChange={(e) => updateNotice(index, 'text', e.target.value)}
-                          placeholder="안내 문구를 입력하세요"
-                          rows={2}
-                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                        />
+                    <li key={index} className="py-4">
+                      <div className="flex items-start space-x-4">
+                        <div className="flex-shrink-0">
+                          {getNoticeIcon(notice.type)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <textarea
+                            value={notice.text}
+                            onChange={(e) => updateNotice(index, 'text', e.target.value)}
+                            placeholder="안내 문구를 입력하세요"
+                            rows={2}
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                          />
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <select
+                            value={notice.type}
+                            onChange={(e) => updateNotice(index, 'type', e.target.value)}
+                            className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                          >
+                            <option value="info">정보</option>
+                            <option value="warning">경고</option>
+                            <option value="important">중요</option>
+                          </select>
+                          <label className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={notice.active}
+                              onChange={(e) => updateNotice(index, 'active', e.target.checked)}
+                              className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                            />
+                            <span className="ml-2 text-sm text-gray-700">활성</span>
+                          </label>
+                          <button
+                            onClick={() => deleteNotice(index)}
+                            className="text-red-600 hover:text-red-800 p-1"
+                            title="삭제"
+                          >
+                            <TrashIcon className="h-5 w-5" />
+                          </button>
+                        </div>
                       </div>
-                      <select
-                        value={notice.type}
-                        onChange={(e) => updateNotice(index, 'type', e.target.value)}
-                        className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                      >
-                        <option value="info">정보</option>
-                        <option value="warning">경고</option>
-                        <option value="important">중요</option>
-                      </select>
-                      <label className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={notice.active}
-                          onChange={(e) => updateNotice(index, 'active', e.target.checked)}
-                          className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                        />
-                        <span className="ml-2 text-sm text-gray-700">활성</span>
-                      </label>
-                      <button
-                        onClick={() => deleteNotice(index)}
-                        className="text-red-600 hover:text-red-800"
-                      >
-                        삭제
-                      </button>
-                    </div>
+                    </li>
                   ))}
-                </div>
-
-                <button
-                  onClick={addNotice}
-                  className="mt-4 inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  안내 문구 추가
-                </button>
+                </ul>
               </div>
+            )}
 
-              <div className="flex justify-end">
-                <button
-                  onClick={handleNoticesSave}
-                  disabled={saving}
-                  className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-                >
-                  {saving ? '저장 중...' : '저장'}
-                </button>
-              </div>
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={handleNoticesSave}
+                disabled={savingSection === 'notices'}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+              >
+                {savingSection === 'notices' ? '저장 중...' : '저장'}
+              </button>
             </div>
-          </Tab.Panel>
-        </Tab.Panels>
-      </Tab.Group>
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 }
