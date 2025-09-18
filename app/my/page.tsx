@@ -129,11 +129,11 @@ export default async function MyDashboard() {
       {/* 통계 카드 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-sm font-medium text-gray-600 mb-2">미납 건수</h3>
+          <h3 className="text-sm font-medium text-gray-600 mb-2">납부 대기 건수</h3>
           <p className="text-3xl font-bold text-gray-900">{unpaidCount}건</p>
         </div>
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-sm font-medium text-gray-600 mb-2">미납 총액</h3>
+          <h3 className="text-sm font-medium text-gray-600 mb-2">납부하셔야 할 총액</h3>
           <p className="text-3xl font-bold text-gray-900">
             {(totalUnpaid ? Math.floor(totalUnpaid) : 0).toLocaleString()}원
           </p>

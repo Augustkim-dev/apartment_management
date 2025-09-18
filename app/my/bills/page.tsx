@@ -134,7 +134,7 @@ export default async function MyBillsPage() {
           </p>
         </div>
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-sm font-medium text-gray-600 mb-2">미납액</h3>
+          <h3 className="text-sm font-medium text-gray-600 mb-2">납부하셔야 할 금액</h3>
           <p className="text-2xl font-bold text-orange-600">
             {(!unpaidAmount || isNaN(unpaidAmount) ? 0 : Math.floor(unpaidAmount)).toLocaleString()}원
           </p>

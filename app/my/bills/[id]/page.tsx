@@ -185,7 +185,7 @@ export default function BillDetailPage() {
               </p>
               {invoiceData.unpaidAmount > 0 && (
                 <p className="text-xs sm:text-sm text-blue-200 mt-1">
-                  (당월 {formatCurrency(invoiceData.currentCharges.total)}원 + 미납 {formatCurrency(invoiceData.unpaidAmount)}원)
+                  (당월 {formatCurrency(invoiceData.currentCharges.total)}원 + 전월 납부 잔액 {formatCurrency(invoiceData.unpaidAmount)}원)
                 </p>
               )}
             </div>
@@ -226,11 +226,11 @@ export default function BillDetailPage() {
             </p>
           </div>
 
-          {/* 미납금액 */}
+          {/* 전월 납부 잔액 */}
           {invoiceData.unpaidAmount > 0 && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4 lg:p-6">
               <div className="flex items-center justify-between mb-1 sm:mb-2">
-                <span className="text-xs sm:text-sm text-red-600 font-medium">미납금액</span>
+                <span className="text-xs sm:text-sm text-red-600 font-medium">전월 납부 잔액</span>
                 <ExclamationCircleIcon className="h-4 sm:h-5 w-4 sm:w-5 text-red-500" />
               </div>
               <div className="flex items-baseline space-x-1 sm:space-x-2">
@@ -238,7 +238,7 @@ export default function BillDetailPage() {
                 <span className="text-xs sm:text-sm text-red-600">원</span>
               </div>
               <p className="text-xs sm:text-sm text-red-600 mt-1">
-                {invoiceData.unpaidDetails.length}개월 미납
+                {invoiceData.unpaidDetails.length}개월 납부 대기
               </p>
             </div>
           )}
@@ -420,7 +420,7 @@ export default function BillDetailPage() {
                       {invoiceData.unpaidAmount > 0 && (
                         <>
                           <tr className="bg-red-50">
-                            <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-red-700">전월 미납금</td>
+                            <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-red-700">전월 납부 잔액</td>
                             <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right text-red-600">{formatCurrency(invoiceData.unpaidAmount)}원</td>
                             <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">-</td>
                             <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">-</td>
@@ -593,17 +593,17 @@ export default function BillDetailPage() {
 
                 {invoiceData.unpaidAmount > 0 && (
                   <div className="mb-6">
-                    <h4 className="text-sm sm:text-md font-medium text-gray-700 mb-3">미납 내역</h4>
+                    <h4 className="text-sm sm:text-md font-medium text-gray-700 mb-3">전월 납부 내역</h4>
                     <div className="bg-red-50 rounded-lg p-4">
                       <div className="mb-3">
-                        <p className="text-xs sm:text-sm text-red-600">총 미납금액</p>
+                        <p className="text-xs sm:text-sm text-red-600">총 납부 잔액</p>
                         <p className="text-xl sm:text-2xl font-bold text-red-700">{formatCurrency(invoiceData.unpaidAmount)}원</p>
                       </div>
                       <table className="min-w-full">
                         <thead>
                           <tr className="text-xs sm:text-sm text-red-600">
                             <th className="text-left pb-2">청구월</th>
-                            <th className="text-right pb-2">미납금액</th>
+                            <th className="text-right pb-2">납부 잔액</th>
                           </tr>
                         </thead>
                         <tbody className="text-xs sm:text-sm">
