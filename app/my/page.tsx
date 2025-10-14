@@ -1,5 +1,6 @@
 import { getRequiredSession } from "@/lib/auth-utils";
 import { query } from "@/lib/db-utils";
+import { configService } from "@/lib/services/config-service";
 import {
   CurrencyDollarIcon,
   ClockIcon,
@@ -7,6 +8,7 @@ import {
   DocumentTextIcon
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
+import PaymentAccountCard from "@/components/PaymentAccountCard";
 
 interface UnitBill {
   id: number;
@@ -29,6 +31,9 @@ export default async function MyDashboard() {
       </div>
     );
   }
+
+  // 납부 계좌 정보 조회
+  const paymentConfig = await configService.getByCategory('payment');
 
   // 사용자의 입주/퇴거일 사이 청구서 조회
   const moveInDate = session.user.moveInDate || '2024-01-01';
@@ -139,6 +144,13 @@ export default async function MyDashboard() {
           </p>
         </div>
       </div>
+
+      {/* 납부 계좌 안내 */}
+      <PaymentAccountCard
+        bankName={paymentConfig.bank_name || ''}
+        accountNumber={paymentConfig.account_number || ''}
+        accountHolder={paymentConfig.account_holder || ''}
+      />
 
       {/* 최근 청구서 목록 */}
       <div className="bg-white rounded-lg shadow">
