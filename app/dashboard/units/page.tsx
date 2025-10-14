@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import {
   BuildingOfficeIcon,
   MagnifyingGlassIcon,
@@ -222,60 +221,58 @@ export default function UnitsPage() {
           <ul className="divide-y divide-gray-200">
             {filteredUnits.map((unit) => (
               <li key={unit.id}>
-                <Link href={`/dashboard/units/${unit.id}`} className="block hover:bg-gray-50">
-                  <div className="px-4 py-4 sm:px-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <BuildingOfficeIcon className={`h-10 w-10 ${
-                          unit.status === 'occupied' ? 'text-green-400' : 'text-gray-400'
-                        } mr-4`} />
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{unit.unitNumber}</p>
-                          {unit.status === 'occupied' ? (
-                            <>
-                              <p className="text-sm text-gray-500">{unit.tenantName}</p>
-                              <div className="flex items-center gap-3 mt-1">
-                                {unit.contact && (
-                                  <span className="flex items-center text-xs text-gray-400">
-                                    <PhoneIcon className="h-3 w-3 mr-1" />
-                                    {unit.contact}
-                                  </span>
-                                )}
-                                {unit.email && (
-                                  <span className="flex items-center text-xs text-gray-400">
-                                    <EnvelopeIcon className="h-3 w-3 mr-1" />
-                                    {unit.email}
-                                  </span>
-                                )}
-                              </div>
-                            </>
-                          ) : (
-                            <p className="text-sm text-gray-500">공실</p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        {unit.unpaidAmount > 0 ? (
-                          <div>
-                            <p className="text-sm font-medium text-red-600">
-                              미납: {unit.unpaidAmount.toLocaleString()}원
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              마지막 납부: {unit.lastPaymentDate || '없음'}
-                            </p>
-                          </div>
-                        ) : unit.status === 'occupied' ? (
-                          <div>
-                            <p className="text-sm font-medium text-green-600">완납</p>
-                            <p className="text-xs text-gray-500">
-                              마지막 납부: {unit.lastPaymentDate || '없음'}
-                            </p>
-                          </div>
-                        ) : null}
+                <div className="px-4 py-4 sm:px-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <BuildingOfficeIcon className={`h-10 w-10 ${
+                        unit.status === 'occupied' ? 'text-green-400' : 'text-gray-400'
+                      } mr-4`} />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{unit.unitNumber}</p>
+                        {unit.status === 'occupied' ? (
+                          <>
+                            <p className="text-sm text-gray-500">{unit.tenantName}</p>
+                            <div className="flex items-center gap-3 mt-1">
+                              {unit.contact && (
+                                <span className="flex items-center text-xs text-gray-400">
+                                  <PhoneIcon className="h-3 w-3 mr-1" />
+                                  {unit.contact}
+                                </span>
+                              )}
+                              {unit.email && (
+                                <span className="flex items-center text-xs text-gray-400">
+                                  <EnvelopeIcon className="h-3 w-3 mr-1" />
+                                  {unit.email}
+                                </span>
+                              )}
+                            </div>
+                          </>
+                        ) : (
+                          <p className="text-sm text-gray-500">공실</p>
+                        )}
                       </div>
                     </div>
+                    <div className="text-right">
+                      {unit.unpaidAmount > 0 ? (
+                        <div>
+                          <p className="text-sm font-medium text-red-600">
+                            미납: {unit.unpaidAmount.toLocaleString()}원
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            마지막 납부: {unit.lastPaymentDate || '없음'}
+                          </p>
+                        </div>
+                      ) : unit.status === 'occupied' ? (
+                        <div>
+                          <p className="text-sm font-medium text-green-600">완납</p>
+                          <p className="text-xs text-gray-500">
+                            마지막 납부: {unit.lastPaymentDate || '없음'}
+                          </p>
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
-                </Link>
+                </div>
               </li>
             ))}
           </ul>
