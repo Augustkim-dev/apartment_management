@@ -15,11 +15,13 @@ import {
   Bars3Icon,
   XMarkIcon,
   UserGroupIcon,
+  BanknotesIcon,
 } from '@heroicons/react/24/outline';
 
 const navigation = [
   { name: '대시보드', href: '/dashboard', icon: HomeIcon },
   { name: '청구서 관리', href: '/dashboard/bills', icon: DocumentTextIcon },
+  { name: '정산 관리', href: '/dashboard/settlements', icon: BanknotesIcon },
   { name: '호실 관리', href: '/dashboard/units', icon: BuildingOfficeIcon },
   { name: '유저 관리', href: '/dashboard/users', icon: UserGroupIcon },
   { name: '데이터 업로드', href: '/dashboard/upload', icon: ArrowUpTrayIcon },

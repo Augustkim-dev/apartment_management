@@ -213,4 +213,187 @@ export class UnitBillsService {
       statistics: null
     };
   }
+
+  /**
+   * 정산 관리: 전체 호실의 청구 내역 조회 (필터링 및 페이지네이션 지원)
+   */
+  async getAllSettlements(filters: {
+    unitNumber?: string;
+    userName?: string;
+    phoneNumber?: string;
+    startDate?: string;
+    endDate?: string;
+    paymentStatus?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const {
+      unitNumber,
+      userName,
+      phoneNumber,
+      startDate,
+      endDate,
+      paymentStatus,
+      page = 1,
+      limit = 50
+    } = filters;
+
+    const offset = (page - 1) * limit;
+    const conditions: string[] = [];
+    const params: any[] = [];
+
+    // 필터 조건 추가
+    if (unitNumber) {
+      conditions.push('u.unit_number LIKE ?');
+      params.push(`%${unitNumber}%`);
+    }
+
+    if (userName) {
+      conditions.push('u.tenant_name LIKE ?');
+      params.push(`%${userName}%`);
+    }
+
+    if (phoneNumber) {
+      conditions.push('u.contact LIKE ?');
+      params.push(`%${phoneNumber}%`);
+    }
+
+    if (startDate) {
+      const [year, month] = startDate.split('-');
+      conditions.push('(mb.bill_year > ? OR (mb.bill_year = ? AND mb.bill_month >= ?))');
+      params.push(parseInt(year), parseInt(year), parseInt(month));
+    }
+
+    if (endDate) {
+      const [year, month] = endDate.split('-');
+      conditions.push('(mb.bill_year < ? OR (mb.bill_year = ? AND mb.bill_month <= ?))');
+      params.push(parseInt(year), parseInt(year), parseInt(month));
+    }
+
+    if (paymentStatus && paymentStatus !== 'all') {
+      conditions.push('ub.payment_status = ?');
+      params.push(paymentStatus);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    // 데이터 조회
+    const dataQuery = `
+      SELECT
+        ub.id as unitBillId,
+        mb.bill_year as billYear,
+        mb.bill_month as billMonth,
+        u.unit_number as unitNumber,
+        u.tenant_name as tenantName,
+        u.contact,
+        u.email,
+        ub.usage_amount as usageAmount,
+        ub.total_amount as totalAmount,
+        ub.payment_status as paymentStatus,
+        ub.payment_date as paymentDate,
+        ub.payment_method as paymentMethod,
+        ub.due_date as dueDate,
+        mb.billing_period_start as billingPeriodStart,
+        mb.billing_period_end as billingPeriodEnd,
+        ub.created_at as createdAt
+      FROM unit_bills ub
+      JOIN units u ON ub.unit_id = u.id
+      JOIN monthly_bills mb ON ub.monthly_bill_id = mb.id
+      ${whereClause}
+      ORDER BY mb.bill_year DESC, mb.bill_month DESC, u.unit_number ASC
+      LIMIT ? OFFSET ?
+    `;
+
+    const data = await query<RowDataPacket[]>(dataQuery, [...params, limit, offset]);
+
+    // 전체 카운트 조회
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM unit_bills ub
+      JOIN units u ON ub.unit_id = u.id
+      JOIN monthly_bills mb ON ub.monthly_bill_id = mb.id
+      ${whereClause}
+    `;
+
+    const [countResult] = await query<RowDataPacket[]>(countQuery, params);
+    const total = countResult.total;
+
+    // 통계 조회
+    const statsQuery = `
+      SELECT
+        SUM(ub.total_amount) as totalBilled,
+        SUM(CASE WHEN ub.payment_status = 'paid' THEN ub.total_amount ELSE 0 END) as totalPaid,
+        SUM(CASE WHEN ub.payment_status IN ('pending', 'overdue') THEN ub.total_amount ELSE 0 END) as totalUnpaid,
+        COUNT(*) as recordCount,
+        SUM(CASE WHEN ub.payment_status = 'paid' THEN 1 ELSE 0 END) as paidCount,
+        SUM(CASE WHEN ub.payment_status IN ('pending', 'overdue') THEN 1 ELSE 0 END) as unpaidCount
+      FROM unit_bills ub
+      JOIN units u ON ub.unit_id = u.id
+      JOIN monthly_bills mb ON ub.monthly_bill_id = mb.id
+      ${whereClause}
+    `;
+
+    const [statsResult] = await query<RowDataPacket[]>(statsQuery, params);
+
+    return {
+      data,
+      summary: {
+        totalBilled: parseFloat(statsResult.totalBilled || '0'),
+        totalPaid: parseFloat(statsResult.totalPaid || '0'),
+        totalUnpaid: parseFloat(statsResult.totalUnpaid || '0'),
+        recordCount: parseInt(statsResult.recordCount || '0'),
+        paidCount: parseInt(statsResult.paidCount || '0'),
+        unpaidCount: parseInt(statsResult.unpaidCount || '0')
+      },
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
+  }
+
+  /**
+   * 납부 정보 업데이트 (상태 + 날짜 + 방법)
+   */
+  async updatePaymentDetails(
+    unitBillId: number,
+    updates: {
+      paymentStatus?: 'pending' | 'paid' | 'overdue';
+      paymentDate?: string | null;
+      paymentMethod?: string | null;
+    }
+  ) {
+    const fields: string[] = [];
+    const params: any[] = [];
+
+    if (updates.paymentStatus !== undefined) {
+      fields.push('payment_status = ?');
+      params.push(updates.paymentStatus);
+    }
+
+    if (updates.paymentDate !== undefined) {
+      fields.push('payment_date = ?');
+      params.push(updates.paymentDate);
+    }
+
+    if (updates.paymentMethod !== undefined) {
+      fields.push('payment_method = ?');
+      params.push(updates.paymentMethod);
+    }
+
+    if (fields.length === 0) {
+      return false;
+    }
+
+    params.push(unitBillId);
+
+    const result = await execute(
+      `UPDATE unit_bills SET ${fields.join(', ')} WHERE id = ?`,
+      params
+    );
+
+    return result.affectedRows > 0;
+  }
 }
