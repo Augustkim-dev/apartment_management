@@ -21,6 +21,14 @@ export class UnitBillsService {
         [monthlyBillId]
       );
 
+      // monthly_bills에서 due_date 조회
+      const [monthlyBills] = await conn.execute<RowDataPacket[]>(
+        'SELECT due_date FROM monthly_bills WHERE id = ?',
+        [monthlyBillId]
+      );
+
+      const dueDate = monthlyBills.length > 0 ? monthlyBills[0].due_date : null;
+
       // 각 호실별 청구서 저장
       const savedBills = [];
 
@@ -46,8 +54,8 @@ export class UnitBillsService {
             usage_amount, usage_rate,
             basic_fee, power_fee, climate_fee, fuel_fee,
             vat, power_fund, tv_license_fee, round_down,
-            total_amount, payment_status, notes
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            total_amount, payment_status, due_date, notes
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             monthlyBillId,
             unitId,
@@ -65,6 +73,7 @@ export class UnitBillsService {
             0, // round_down (원단위절사는 전체에만 적용)
             unitBill.totalAmount,
             'pending',
+            dueDate,
             options?.notes || null
           ]
         );

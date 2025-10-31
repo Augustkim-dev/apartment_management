@@ -113,14 +113,14 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const { billYear, billMonth, totalAmount, totalUsage, basicFee, powerFee, climateFee, fuelFee, vat, powerFund, tvLicenseFee, roundDown, billingPeriodStart, billingPeriodEnd } = data;
+    const { billYear, billMonth, totalAmount, totalUsage, basicFee, powerFee, climateFee, fuelFee, vat, powerFund, tvLicenseFee, roundDown, billingPeriodStart, billingPeriodEnd, dueDate } = data;
 
     // Format dates for MySQL (YYYY-MM-DD HH:MM:SS)
     const formatDateForMySQL = (dateStr: string | undefined): string => {
       if (!dateStr) {
-        // Default to first and last day of the billing month
-        const defaultStart = new Date(billYear, billMonth - 1, 1);
-        const defaultEnd = new Date(billYear, billMonth, 0);
+        // Default to first and last day of the NEXT month (청구기간: 다음달 1일 ~ 다음달 마지막날)
+        const defaultStart = new Date(billYear, billMonth, 1);  // 다음 달 1일
+        const defaultEnd = new Date(billYear, billMonth + 1, 0);  // 다음 달 마지막날
         return billMonth === new Date().getMonth() + 1 && billYear === new Date().getFullYear()
           ? new Date().toISOString().slice(0, 19).replace('T', ' ')
           : (dateStr === billingPeriodEnd ? defaultEnd : defaultStart).toISOString().slice(0, 19).replace('T', ' ');
@@ -131,6 +131,24 @@ export async function POST(request: Request) {
 
     const formattedStartDate = formatDateForMySQL(billingPeriodStart);
     const formattedEndDate = formatDateForMySQL(billingPeriodEnd);
+
+    // 납부기한 기본값 계산 (청구기간 종료일 + 10일)
+    const calculateDefaultDueDate = (billingEndDate: Date): Date => {
+      const dueDate = new Date(billingEndDate);
+      dueDate.setDate(dueDate.getDate() + 10);  // 청구기간 종료 후 10일
+      return dueDate;
+    };
+
+    // 납부기한 처리
+    let finalDueDate: string;
+    if (dueDate) {
+      finalDueDate = formatDateForMySQL(dueDate);
+    } else {
+      const endDate = billingPeriodEnd
+        ? new Date(billingPeriodEnd)
+        : new Date(billYear, billMonth + 1, 0);  // 다음 달 마지막날
+      finalDueDate = formatDateForMySQL(calculateDefaultDueDate(endDate).toISOString());
+    }
 
     // 기존 청구서 확인
     const existing = await query(
@@ -155,13 +173,13 @@ export async function POST(request: Request) {
           bill_year, bill_month, total_amount, total_usage,
           basic_fee, power_fee, climate_fee, fuel_fee,
           vat, power_fund, tv_license_fee, round_down,
-          billing_period_start, billing_period_end
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          billing_period_start, billing_period_end, due_date
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         billYear, billMonth, totalAmount, totalUsage,
         basicFee, powerFee, climateFee, fuelFee,
         vat, powerFund, tvLicenseFee || 0, roundDown || 0,
-        formattedStartDate, formattedEndDate
+        formattedStartDate, formattedEndDate, finalDueDate
       ]);
 
       message = `${billYear}년 ${billMonth}월 청구서가 재생성되었습니다.`;
@@ -172,13 +190,13 @@ export async function POST(request: Request) {
           bill_year, bill_month, total_amount, total_usage,
           basic_fee, power_fee, climate_fee, fuel_fee,
           vat, power_fund, tv_license_fee, round_down,
-          billing_period_start, billing_period_end
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          billing_period_start, billing_period_end, due_date
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         billYear, billMonth, totalAmount, totalUsage,
         basicFee, powerFee, climateFee, fuelFee,
         vat, powerFund, tvLicenseFee || 0, roundDown || 0,
-        formattedStartDate, formattedEndDate
+        formattedStartDate, formattedEndDate, finalDueDate
       ]);
 
       message = '청구서가 생성되었습니다.';

@@ -74,6 +74,7 @@ export async function GET(
       billMonth: bill.bill_month,
       billingPeriodStart: bill.billing_period_start,
       billingPeriodEnd: bill.billing_period_end,
+      dueDate: bill.due_date,
       totalUsage: bill.total_usage,
       totalAmount: bill.total_amount,
       basicFee: bill.basic_fee || 0,

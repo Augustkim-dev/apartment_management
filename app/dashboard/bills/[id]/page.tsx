@@ -13,6 +13,7 @@ import {
   ExclamationCircleIcon,
   ChevronDownIcon,
   ChevronUpIcon,
+  PencilIcon,
 } from '@heroicons/react/24/outline';
 
 interface BillDetail {
@@ -21,6 +22,7 @@ interface BillDetail {
   billMonth: number;
   billingPeriodStart: string;
   billingPeriodEnd: string;
+  dueDate?: string;
   totalUsage: number;
   totalAmount: number;
   basicFee: number;
@@ -74,6 +76,12 @@ export default function BillDetailPage() {
   const [selectedUnits, setSelectedUnits] = useState<Set<number>>(new Set());
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [isProcessingCancel, setIsProcessingCancel] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    billingPeriodStart: '',
+    billingPeriodEnd: '',
+    dueDate: '',
+  });
 
   useEffect(() => {
     fetchBillDetail();
@@ -293,6 +301,46 @@ export default function BillDetailPage() {
     }
   };
 
+  const handleOpenEditModal = () => {
+    if (bill) {
+      // Convert date strings to input format (YYYY-MM-DD)
+      const formatForInput = (dateStr: string) => {
+        return new Date(dateStr).toISOString().split('T')[0];
+      };
+
+      setEditFormData({
+        billingPeriodStart: formatForInput(bill.billingPeriodStart),
+        billingPeriodEnd: formatForInput(bill.billingPeriodEnd),
+        dueDate: bill.dueDate ? formatForInput(bill.dueDate) : '',
+      });
+      setIsEditModalOpen(true);
+    }
+  };
+
+  const handleSaveBillingInfo = async () => {
+    try {
+      const response = await fetch(`/api/bills/${billId}/billing-info`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editFormData),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success(result.message);
+        setIsEditModalOpen(false);
+        fetchBillDetail();
+        fetchUnitBills();
+      } else {
+        toast.error(result.error || '청구 정보 업데이트에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Billing info update error:', error);
+      toast.error('청구 정보 업데이트 중 오류가 발생했습니다.');
+    }
+  };
+
   const handleExcelDownload = async () => {
     try {
       const response = await fetch(`/api/bills/${billId}/download`);
@@ -393,9 +441,21 @@ export default function BillDetailPage() {
               <p className="text-sm text-gray-500 mt-1">
                 청구 기간: {formatDate(bill.billingPeriodStart)} ~ {formatDate(bill.billingPeriodEnd)}
               </p>
+              {bill.dueDate && (
+                <p className="text-sm text-gray-500 mt-1">
+                  납부기한: {formatDate(bill.dueDate)}
+                </p>
+              )}
             </div>
           </div>
           <div className="flex space-x-2">
+            <button
+              onClick={handleOpenEditModal}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            >
+              <PencilIcon className="h-5 w-5 mr-2" />
+              청구정보 수정
+            </button>
             <button
               onClick={handleExcelDownload}
               className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
@@ -842,6 +902,72 @@ export default function BillDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Edit Billing Info Modal */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+          <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="px-6 py-4 border-b">
+              <h3 className="text-lg font-semibold text-gray-900">청구정보 수정</h3>
+            </div>
+            <div className="px-6 py-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  청구기간 시작일
+                </label>
+                <input
+                  type="date"
+                  value={editFormData.billingPeriodStart}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, billingPeriodStart: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  청구기간 종료일
+                </label>
+                <input
+                  type="date"
+                  value={editFormData.billingPeriodEnd}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, billingPeriodEnd: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  납부기한
+                </label>
+                <input
+                  type="date"
+                  value={editFormData.dueDate}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, dueDate: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t flex justify-end space-x-2">
+              <button
+                onClick={() => setIsEditModalOpen(false)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleSaveBillingInfo}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
+              >
+                저장
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
