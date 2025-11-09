@@ -439,7 +439,7 @@ export default function BillDetailPage() {
                 {bill.billYear}년 {bill.billMonth}월 청구서
               </h1>
               <p className="text-sm text-gray-500 mt-1">
-                청구 기간: {formatDate(bill.billingPeriodStart)} ~ {formatDate(bill.billingPeriodEnd)}
+                사용 기간: {formatDate(bill.billingPeriodStart)} ~ {formatDate(bill.billingPeriodEnd)}
               </p>
               {bill.dueDate && (
                 <p className="text-sm text-gray-500 mt-1">
@@ -913,7 +913,7 @@ export default function BillDetailPage() {
             <div className="px-6 py-4 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  청구기간 시작일
+                  사용기간 시작일
                 </label>
                 <input
                   type="date"
@@ -926,7 +926,7 @@ export default function BillDetailPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  청구기간 종료일
+                  사용기간 종료일
                 </label>
                 <input
                   type="date"

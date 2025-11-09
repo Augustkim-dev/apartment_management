@@ -13,7 +13,7 @@ export async function PATCH(
     // 입력 검증
     if (!billingPeriodStart || !billingPeriodEnd || !dueDate) {
       return NextResponse.json(
-        { error: '청구기간 시작일, 종료일, 납부기한은 필수입니다.' },
+        { error: '사용기간 시작일, 종료일, 납부기한은 필수입니다.' },
         { status: 400 }
       );
     }

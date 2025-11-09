@@ -85,7 +85,7 @@ interface UnitInvoiceData {
     dueDate: string;
   };
 
-  // 청구 기간
+  // 사용 기간
   billingPeriod: {
     start: string;
     end: string;

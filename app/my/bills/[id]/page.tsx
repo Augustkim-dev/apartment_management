@@ -148,7 +148,7 @@ export default function BillDetailPage() {
                   {invoiceData.billYear}년 {invoiceData.billMonth}월 전기요금 고지서
                 </h1>
                 <p className="text-xs sm:text-sm text-gray-500 mt-1">
-                  청구기간: {formatDate(invoiceData.billingPeriod.start)} ~ {formatDate(invoiceData.billingPeriod.end)}
+                  사용기간: {formatDate(invoiceData.billingPeriod.start)} ~ {formatDate(invoiceData.billingPeriod.end)}
                 </p>
               </div>
             </div>
