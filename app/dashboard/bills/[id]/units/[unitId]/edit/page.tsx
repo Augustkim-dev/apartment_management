@@ -360,21 +360,6 @@ export default function UnitBillEditPage({
                   onChange={(e) => {
                     const newValue = parseFloat(e.target.value) || 0;
                     setFormData({ ...formData, [key]: newValue });
-
-                    // 직접 입력 모드에서는 총액 자동 계산
-                    if (editMode === 'manual') {
-                      const sum =
-                        (key === 'basicFee' ? newValue : formData.basicFee || 0) +
-                        (key === 'powerFee' ? newValue : formData.powerFee || 0) +
-                        (key === 'climateFee' ? newValue : formData.climateFee || 0) +
-                        (key === 'fuelFee' ? newValue : formData.fuelFee || 0) +
-                        (key === 'powerFactorFee' ? newValue : formData.powerFactorFee || 0) +
-                        (key === 'vat' ? newValue : formData.vat || 0) +
-                        (key === 'powerFund' ? newValue : formData.powerFund || 0) +
-                        (key === 'tvLicenseFee' ? newValue : formData.tvLicenseFee || 0) +
-                        (key === 'roundDown' ? newValue : formData.roundDown || 0);
-                      setFormData({ ...formData, [key]: newValue, totalAmount: sum });
-                    }
                   }}
                   disabled={editMode === 'proportional'}
                   className="w-40 border border-gray-300 rounded-lg px-3 py-2 text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -383,9 +368,28 @@ export default function UnitBillEditPage({
               </div>
             </div>
           ))}
-          <div className="border-t pt-3 flex items-center justify-between font-bold text-lg">
-            <span>총 청구액:</span>
-            <span className="text-blue-600">{(formData.totalAmount || 0).toLocaleString()}원</span>
+          <div className="border-t pt-3">
+            <div className="flex items-center justify-between font-bold text-lg">
+              <span>총 청구액:</span>
+              {editMode === 'manual' ? (
+                <div className="flex items-center">
+                  <input
+                    type="number"
+                    value={formData.totalAmount || 0}
+                    onChange={(e) => setFormData({ ...formData, totalAmount: parseFloat(e.target.value) || 0 })}
+                    className="w-48 border border-gray-300 rounded-lg px-3 py-2 text-right font-bold text-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <span className="ml-2 text-gray-600">원</span>
+                </div>
+              ) : (
+                <span className="text-blue-600">{(formData.totalAmount || 0).toLocaleString()}원</span>
+              )}
+            </div>
+            {editMode === 'manual' && (
+              <p className="text-sm text-gray-500 mt-2 text-right">
+                직접입력 모드에서는 총 청구액을 직접 수정할 수 있습니다.
+              </p>
+            )}
           </div>
         </div>
       </div>
