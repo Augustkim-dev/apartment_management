@@ -808,6 +808,14 @@ export default function BillDetailPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex space-x-2">
+                        <Link
+                          href={`/dashboard/bills/${billId}/units/${unit.id}/edit`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-purple-600 hover:text-purple-900"
+                          title="청구서 수정"
+                        >
+                          수정
+                        </Link>
                         {unit.paymentStatus !== 'paid' ? (
                           <button
                             onClick={(e) => {

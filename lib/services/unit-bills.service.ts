@@ -1,6 +1,12 @@
 import { execute, query, transaction } from '@/lib/db-utils';
 import { CalculationResult, UnitBillCalculation } from '@/types/calculation';
-import { ResultSetHeader, RowDataPacket } from 'mysql2';
+import { ResultSetHeader, RowDataPacket, PoolConnection } from 'mysql2';
+import {
+  UnitBillEditRequest,
+  UnitBillEditResponse,
+  UnitBillEditData,
+  ProportionalCalculationResult
+} from '@/types/unit-bill-edit';
 
 export class UnitBillsService {
   /**
@@ -404,5 +410,297 @@ export class UnitBillsService {
     );
 
     return result.affectedRows > 0;
+  }
+
+  /**
+   * 호실별 청구서 편집을 위한 데이터 조회
+   */
+  async getUnitBillEditData(monthlyBillId: number, unitBillId: number): Promise<UnitBillEditData | null> {
+    // 호실 청구서 데이터 조회
+    const [unitBills] = await query<RowDataPacket[]>(
+      `SELECT
+        ub.*,
+        u.unit_number,
+        u.tenant_name
+      FROM unit_bills ub
+      JOIN units u ON ub.unit_id = u.id
+      WHERE ub.id = ? AND ub.monthly_bill_id = ?`,
+      [unitBillId, monthlyBillId]
+    );
+
+    if (unitBills.length === 0) {
+      return null;
+    }
+
+    // 건물 전체 데이터 조회
+    const [buildingData] = await query<RowDataPacket[]>(
+      `SELECT
+        id,
+        bill_year,
+        bill_month,
+        total_usage,
+        basic_fee,
+        power_fee,
+        climate_fee,
+        fuel_fee,
+        power_factor_fee,
+        vat,
+        power_fund,
+        tv_license_fee,
+        round_down,
+        total_amount
+      FROM monthly_bills
+      WHERE id = ?`,
+      [monthlyBillId]
+    );
+
+    if (buildingData.length === 0) {
+      return null;
+    }
+
+    // 해당 월의 전체 호실 사용량 합계
+    const [usageSum] = await query<RowDataPacket[]>(
+      `SELECT SUM(usage_amount) as total_unit_usage
+      FROM unit_bills
+      WHERE monthly_bill_id = ?`,
+      [monthlyBillId]
+    );
+
+    return {
+      unitBill: unitBills[0],
+      buildingData: buildingData[0],
+      totalUnitUsage: parseFloat(usageSum[0].total_unit_usage || '0')
+    };
+  }
+
+  /**
+   * 비율 재계산
+   */
+  async recalculateFees(
+    conn: PoolConnection,
+    monthlyBillId: number,
+    unitBillId: number,
+    newUsage: number
+  ): Promise<ProportionalCalculationResult> {
+    // 건물 전체 데이터 조회
+    const [buildingData] = await conn.execute<RowDataPacket[]>(
+      `SELECT
+        total_usage,
+        basic_fee,
+        power_fee,
+        climate_fee,
+        fuel_fee,
+        power_factor_fee,
+        vat,
+        power_fund,
+        tv_license_fee
+      FROM monthly_bills
+      WHERE id = ?`,
+      [monthlyBillId]
+    );
+
+    if (buildingData.length === 0) {
+      throw new Error('건물 전체 데이터를 찾을 수 없습니다.');
+    }
+
+    const building = buildingData[0];
+    const totalUsage = parseFloat(building.total_usage);
+
+    // 사용량 비율 계산
+    const usageRate = newUsage / totalUsage;
+
+    // 각 요금 항목 비율 계산 (10원 단위 반올림)
+    const basicFee = Math.round((parseFloat(building.basic_fee) * usageRate) / 10) * 10;
+    const powerFee = Math.round((parseFloat(building.power_fee) * usageRate) / 10) * 10;
+    const climateFee = Math.round((parseFloat(building.climate_fee) * usageRate) / 10) * 10;
+    const fuelFee = Math.round((parseFloat(building.fuel_fee) * usageRate) / 10) * 10;
+    const powerFactorFee = Math.round((parseFloat(building.power_factor_fee) * usageRate) / 10) * 10;
+    const vat = Math.round((parseFloat(building.vat) * usageRate) / 10) * 10;
+    const powerFund = Math.round((parseFloat(building.power_fund) * usageRate) / 10) * 10;
+    const tvLicenseFee = Math.round((parseFloat(building.tv_license_fee) * usageRate) / 10) * 10;
+
+    // 총액 계산
+    const totalAmount = basicFee + powerFee + climateFee + fuelFee + powerFactorFee + vat + powerFund + tvLicenseFee;
+
+    return {
+      usageRate,
+      basicFee,
+      powerFee,
+      climateFee,
+      fuelFee,
+      powerFactorFee,
+      vat,
+      powerFund,
+      tvLicenseFee,
+      roundDown: 0,
+      totalAmount
+    };
+  }
+
+  /**
+   * 호실별 청구서 업데이트
+   */
+  async updateUnitBill(
+    unitBillId: number,
+    monthlyBillId: number,
+    updates: UnitBillEditRequest,
+    userId: number = 1
+  ): Promise<UnitBillEditResponse> {
+    return await transaction(async (conn) => {
+      try {
+        // 1. 현재 청구서 데이터 조회
+        const [currentBills] = await conn.execute<RowDataPacket[]>(
+          'SELECT * FROM unit_bills WHERE id = ?',
+          [unitBillId]
+        );
+
+        if (currentBills.length === 0) {
+          return {
+            success: false,
+            message: '청구서를 찾을 수 없습니다.'
+          };
+        }
+
+        const currentBill = currentBills[0];
+
+        // 2. 비율 재계산 모드인 경우
+        let finalUpdates = { ...updates };
+        if (updates.editMode === 'proportional') {
+          const calculated = await this.recalculateFees(
+            conn,
+            monthlyBillId,
+            unitBillId,
+            updates.usageAmount
+          );
+
+          finalUpdates = {
+            ...updates,
+            usageRate: calculated.usageRate,
+            basicFee: calculated.basicFee,
+            powerFee: calculated.powerFee,
+            climateFee: calculated.climateFee,
+            fuelFee: calculated.fuelFee,
+            powerFactorFee: calculated.powerFactorFee,
+            vat: calculated.vat,
+            powerFund: calculated.powerFund,
+            tvLicenseFee: calculated.tvLicenseFee,
+            roundDown: calculated.roundDown,
+            totalAmount: calculated.totalAmount
+          };
+        }
+
+        // 3. unit_bills 업데이트
+        const [updateResult] = await conn.execute<ResultSetHeader>(
+          `UPDATE unit_bills SET
+            previous_reading = ?,
+            current_reading = ?,
+            usage_amount = ?,
+            usage_rate = ?,
+            basic_fee = ?,
+            power_fee = ?,
+            climate_fee = ?,
+            fuel_fee = ?,
+            power_factor_fee = ?,
+            vat = ?,
+            power_fund = ?,
+            tv_license_fee = ?,
+            round_down = ?,
+            total_amount = ?,
+            edit_reason = ?,
+            notes = ?,
+            is_manually_edited = TRUE,
+            updated_at = NOW()
+          WHERE id = ?`,
+          [
+            finalUpdates.previousReading ?? currentBill.previous_reading,
+            finalUpdates.currentReading ?? currentBill.current_reading,
+            finalUpdates.usageAmount,
+            finalUpdates.usageRate ?? currentBill.usage_rate,
+            finalUpdates.basicFee ?? currentBill.basic_fee,
+            finalUpdates.powerFee ?? currentBill.power_fee,
+            finalUpdates.climateFee ?? currentBill.climate_fee,
+            finalUpdates.fuelFee ?? currentBill.fuel_fee,
+            finalUpdates.powerFactorFee ?? currentBill.power_factor_fee,
+            finalUpdates.vat ?? currentBill.vat,
+            finalUpdates.powerFund ?? currentBill.power_fund,
+            finalUpdates.tvLicenseFee ?? currentBill.tv_license_fee,
+            finalUpdates.roundDown ?? currentBill.round_down,
+            finalUpdates.totalAmount,
+            finalUpdates.editReason,
+            finalUpdates.notes ?? currentBill.notes,
+            unitBillId
+          ]
+        );
+
+        if (updateResult.affectedRows === 0) {
+          return {
+            success: false,
+            message: '청구서 업데이트에 실패했습니다.'
+          };
+        }
+
+        // 4. bill_history에 감사 기록 생성
+        const oldValues = {
+          usageAmount: currentBill.usage_amount,
+          totalAmount: currentBill.total_amount,
+          basicFee: currentBill.basic_fee,
+          powerFee: currentBill.power_fee,
+          climateFee: currentBill.climate_fee,
+          fuelFee: currentBill.fuel_fee,
+          powerFactorFee: currentBill.power_factor_fee,
+          vat: currentBill.vat,
+          powerFund: currentBill.power_fund,
+          tvLicenseFee: currentBill.tv_license_fee,
+          roundDown: currentBill.round_down
+        };
+
+        const newValues = {
+          usageAmount: finalUpdates.usageAmount,
+          totalAmount: finalUpdates.totalAmount,
+          basicFee: finalUpdates.basicFee,
+          powerFee: finalUpdates.powerFee,
+          climateFee: finalUpdates.climateFee,
+          fuelFee: finalUpdates.fuelFee,
+          powerFactorFee: finalUpdates.powerFactorFee,
+          vat: finalUpdates.vat,
+          powerFund: finalUpdates.powerFund,
+          tvLicenseFee: finalUpdates.tvLicenseFee,
+          roundDown: finalUpdates.roundDown,
+          editMode: finalUpdates.editMode,
+          editReason: finalUpdates.editReason
+        };
+
+        const [historyResult] = await conn.execute<ResultSetHeader>(
+          `INSERT INTO bill_history
+            (unit_bill_id, action, old_values, new_values, changed_by)
+          VALUES (?, 'updated', ?, ?, ?)`,
+          [
+            unitBillId,
+            JSON.stringify(oldValues),
+            JSON.stringify(newValues),
+            userId
+          ]
+        );
+
+        // 5. 업데이트된 청구서 조회
+        const [updatedBills] = await conn.execute<RowDataPacket[]>(
+          'SELECT * FROM unit_bills WHERE id = ?',
+          [unitBillId]
+        );
+
+        return {
+          success: true,
+          message: '청구서가 수정되었습니다.',
+          updatedBill: updatedBills[0],
+          historyId: historyResult.insertId
+        };
+      } catch (error) {
+        console.error('Error updating unit bill:', error);
+        return {
+          success: false,
+          message: `청구서 수정 중 오류가 발생했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`
+        };
+      }
+    });
   }
 }

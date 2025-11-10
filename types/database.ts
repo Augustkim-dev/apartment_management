@@ -117,6 +117,11 @@ export interface UnitBill {
   paymentMethod: string | null;
 
   notes: string | null;
+
+  // 수정 정보 (2025-11-10 추가)
+  editReason: string | null;
+  isManuallyEdited: boolean;
+
   createdAt: Date;
   updatedAt: Date;
 }
