@@ -459,7 +459,7 @@ export class UnitBillsService {
     }
 
     // 해당 월의 전체 호실 사용량 합계
-    const [usageSum] = await query<RowDataPacket[]>(
+    const usageSum = await query<RowDataPacket[]>(
       `SELECT SUM(usage_amount) as total_unit_usage
       FROM unit_bills
       WHERE monthly_bill_id = ?`,
@@ -469,7 +469,7 @@ export class UnitBillsService {
     return {
       unitBill: unitBills[0],
       buildingData: buildingData[0],
-      totalUnitUsage: parseFloat(usageSum[0].total_unit_usage || '0')
+      totalUnitUsage: parseFloat(usageSum[0]?.total_unit_usage || '0')
     };
   }
 

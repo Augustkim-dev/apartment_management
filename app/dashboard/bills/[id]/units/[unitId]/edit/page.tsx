@@ -38,29 +38,36 @@ export default function UnitBillEditPage({
     try {
       const response = await fetch(`/api/bills/${id}/units/${unitId}/edit`);
       if (!response.ok) {
-        throw new Error('데이터를 가져오는데 실패했습니다.');
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('API Error:', errorData);
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const data: UnitBillEditData = await response.json();
-      setOriginalData(data.unitBill);
-      setBuildingData(data.buildingData);
+      const data: any = await response.json();
+      console.log('Fetched data:', data);
 
-      // 폼 데이터 초기화
+      const unitBill = data.unitBill;
+      const building = data.buildingData;
+
+      setOriginalData(unitBill);
+      setBuildingData(building);
+
+      // 폼 데이터 초기화 (snake_case에서 camelCase로 변환)
       setFormData({
-        previousReading: data.unitBill.previous_reading,
-        currentReading: data.unitBill.current_reading,
-        usageAmount: data.unitBill.usage_amount,
-        basicFee: data.unitBill.basic_fee,
-        powerFee: data.unitBill.power_fee,
-        climateFee: data.unitBill.climate_fee,
-        fuelFee: data.unitBill.fuel_fee,
-        powerFactorFee: data.unitBill.power_factor_fee,
-        vat: data.unitBill.vat,
-        powerFund: data.unitBill.power_fund,
-        tvLicenseFee: data.unitBill.tv_license_fee,
-        roundDown: data.unitBill.round_down,
-        totalAmount: data.unitBill.total_amount,
-        notes: data.unitBill.notes || '',
+        previousReading: unitBill.previous_reading || 0,
+        currentReading: unitBill.current_reading || 0,
+        usageAmount: unitBill.usage_amount || 0,
+        basicFee: unitBill.basic_fee || 0,
+        powerFee: unitBill.power_fee || 0,
+        climateFee: unitBill.climate_fee || 0,
+        fuelFee: unitBill.fuel_fee || 0,
+        powerFactorFee: unitBill.power_factor_fee || 0,
+        vat: unitBill.vat || 0,
+        powerFund: unitBill.power_fund || 0,
+        tvLicenseFee: unitBill.tv_license_fee || 0,
+        roundDown: unitBill.round_down || 0,
+        totalAmount: unitBill.total_amount || 0,
+        notes: unitBill.notes || '',
         editReason: '',
         editMode: 'proportional'
       });
