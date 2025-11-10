@@ -417,7 +417,7 @@ export class UnitBillsService {
    */
   async getUnitBillEditData(monthlyBillId: number, unitBillId: number): Promise<UnitBillEditData | null> {
     // 호실 청구서 데이터 조회
-    const [unitBills] = await query<RowDataPacket[]>(
+    const unitBills = await query<RowDataPacket[]>(
       `SELECT
         ub.*,
         u.unit_number,
@@ -433,7 +433,7 @@ export class UnitBillsService {
     }
 
     // 건물 전체 데이터 조회
-    const [buildingData] = await query<RowDataPacket[]>(
+    const buildingData = await query<RowDataPacket[]>(
       `SELECT
         id,
         bill_year,

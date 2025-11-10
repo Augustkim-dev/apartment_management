@@ -46,6 +46,14 @@ export default function UnitBillEditPage({
       const data: any = await response.json();
       console.log('Fetched data:', data);
 
+      if (!data.unitBill) {
+        throw new Error('청구서 데이터를 찾을 수 없습니다.');
+      }
+
+      if (!data.buildingData) {
+        throw new Error('건물 데이터를 찾을 수 없습니다.');
+      }
+
       const unitBill = data.unitBill;
       const building = data.buildingData;
 
