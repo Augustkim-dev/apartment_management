@@ -86,20 +86,6 @@ export async function PATCH(
       );
     }
 
-    if (!body.usageAmount || body.usageAmount <= 0) {
-      return NextResponse.json(
-        { error: '사용량은 0보다 커야 합니다.' },
-        { status: 400 }
-      );
-    }
-
-    if (!body.totalAmount || body.totalAmount <= 0) {
-      return NextResponse.json(
-        { error: '총 청구액은 0보다 커야 합니다.' },
-        { status: 400 }
-      );
-    }
-
     if (!body.editMode || !['proportional', 'manual'].includes(body.editMode)) {
       return NextResponse.json(
         { error: '유효하지 않은 편집 모드입니다.' },
@@ -107,13 +93,30 @@ export async function PATCH(
       );
     }
 
-    // 유효성 검사 - 검침 값
-    if (body.currentReading !== undefined && body.previousReading !== undefined) {
-      if (body.currentReading < body.previousReading) {
+    // 직접 입력 모드가 아닐 때만 검증 수행
+    if (body.editMode !== 'manual') {
+      if (!body.usageAmount || body.usageAmount <= 0) {
         return NextResponse.json(
-          { error: '당월 지침이 전월 지침보다 작을 수 없습니다.' },
+          { error: '사용량은 0보다 커야 합니다.' },
           { status: 400 }
         );
+      }
+
+      if (!body.totalAmount || body.totalAmount <= 0) {
+        return NextResponse.json(
+          { error: '총 청구액은 0보다 커야 합니다.' },
+          { status: 400 }
+        );
+      }
+
+      // 유효성 검사 - 검침 값
+      if (body.currentReading !== undefined && body.previousReading !== undefined) {
+        if (body.currentReading < body.previousReading) {
+          return NextResponse.json(
+            { error: '당월 지침이 전월 지침보다 작을 수 없습니다.' },
+            { status: 400 }
+          );
+        }
       }
     }
 

@@ -146,21 +146,25 @@ export default function UnitBillEditPage({
   const validate = (): boolean => {
     const validationErrors: string[] = [];
 
-    if (!formData.usageAmount || formData.usageAmount <= 0) {
-      validationErrors.push('사용량을 입력해주세요.');
-    }
-
-    if (!formData.totalAmount || formData.totalAmount <= 0) {
-      validationErrors.push('총 청구액을 입력해주세요.');
-    }
-
+    // 수정 사유는 모든 모드에서 필수
     if (!formData.editReason || formData.editReason.trim() === '') {
       validationErrors.push('수정 사유를 선택해주세요.');
     }
 
-    if (formData.currentReading !== undefined && formData.previousReading !== undefined) {
-      if (formData.currentReading < formData.previousReading) {
-        validationErrors.push('당월 지침이 전월 지침보다 작을 수 없습니다.');
+    // 직접 입력 모드가 아닐 때만 검증 수행
+    if (editMode !== 'manual') {
+      if (!formData.usageAmount || formData.usageAmount <= 0) {
+        validationErrors.push('사용량을 입력해주세요.');
+      }
+
+      if (!formData.totalAmount || formData.totalAmount <= 0) {
+        validationErrors.push('총 청구액을 입력해주세요.');
+      }
+
+      if (formData.currentReading !== undefined && formData.previousReading !== undefined) {
+        if (formData.currentReading < formData.previousReading) {
+          validationErrors.push('당월 지침이 전월 지침보다 작을 수 없습니다.');
+        }
       }
     }
 
