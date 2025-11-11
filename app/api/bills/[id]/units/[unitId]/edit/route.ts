@@ -117,26 +117,6 @@ export async function PATCH(
       }
     }
 
-    // 유효성 검사 - 직접 입력 모드의 경우 합계 검증
-    if (body.editMode === 'manual') {
-      const sum = (body.basicFee || 0) +
-                  (body.powerFee || 0) +
-                  (body.climateFee || 0) +
-                  (body.fuelFee || 0) +
-                  (body.powerFactorFee || 0) +
-                  (body.vat || 0) +
-                  (body.powerFund || 0) +
-                  (body.tvLicenseFee || 0) +
-                  (body.roundDown || 0);
-
-      if (Math.abs(sum - body.totalAmount) > 100) {
-        return NextResponse.json(
-          { error: '개별 요금 항목의 합계와 총 청구액이 일치하지 않습니다. (허용 오차: ±100원)' },
-          { status: 400 }
-        );
-      }
-    }
-
     // TODO: 실제 사용자 ID는 세션에서 가져와야 함
     const userId = 1;
 

@@ -164,24 +164,6 @@ export default function UnitBillEditPage({
       }
     }
 
-    // 직접 입력 모드의 경우 합계 검증
-    if (editMode === 'manual') {
-      const sum =
-        (formData.basicFee || 0) +
-        (formData.powerFee || 0) +
-        (formData.climateFee || 0) +
-        (formData.fuelFee || 0) +
-        (formData.powerFactorFee || 0) +
-        (formData.vat || 0) +
-        (formData.powerFund || 0) +
-        (formData.tvLicenseFee || 0) +
-        (formData.roundDown || 0);
-
-      if (Math.abs(sum - (formData.totalAmount || 0)) > 100) {
-        validationErrors.push('개별 요금 항목의 합계와 총 청구액이 일치하지 않습니다. (허용 오차: ±100원)');
-      }
-    }
-
     setErrors(validationErrors);
     return validationErrors.length === 0;
   };
@@ -407,7 +389,6 @@ export default function UnitBillEditPage({
                 (formData.tvLicenseFee || 0) +
                 (formData.roundDown || 0);
               const difference = calculatedSum - (formData.totalAmount || 0);
-              const isValid = Math.abs(difference) <= 100;
 
               return (
                 <div className="mb-4 p-3 bg-gray-50 rounded-lg">
@@ -418,9 +399,8 @@ export default function UnitBillEditPage({
                   {difference !== 0 && (
                     <div className="mt-2 flex items-center justify-between text-sm">
                       <span className="text-gray-700">차액:</span>
-                      <span className={`font-semibold ${isValid ? 'text-green-600' : 'text-red-600'}`}>
+                      <span className="font-semibold text-blue-600">
                         {difference > 0 ? '+' : ''}{difference.toLocaleString()}원
-                        {isValid ? ' ✓' : ' ✗ (허용 범위 초과)'}
                       </span>
                     </div>
                   )}
@@ -446,7 +426,7 @@ export default function UnitBillEditPage({
             </div>
             {editMode === 'manual' && (
               <p className="text-sm text-gray-500 mt-2 text-right">
-                직접입력 모드에서는 총 청구액을 직접 수정할 수 있습니다. (차액 허용 범위: ±100원)
+                직접입력 모드에서는 총 청구액을 직접 수정할 수 있습니다.
               </p>
             )}
           </div>
@@ -495,28 +475,12 @@ export default function UnitBillEditPage({
           취소
         </button>
         {(() => {
-          // 유효성 검증 사전 체크
+          // 유효성 검증 사전 체크 (차액 검증 제거)
           const hasUsageAmount = formData.usageAmount && formData.usageAmount > 0;
           const hasTotalAmount = formData.totalAmount && formData.totalAmount > 0;
           const hasEditReason = formData.editReason && formData.editReason.trim() !== '';
 
-          let sumValid = true;
-          if (editMode === 'manual') {
-            const calculatedSum =
-              (formData.basicFee || 0) +
-              (formData.powerFee || 0) +
-              (formData.climateFee || 0) +
-              (formData.fuelFee || 0) +
-              (formData.powerFactorFee || 0) +
-              (formData.vat || 0) +
-              (formData.powerFund || 0) +
-              (formData.tvLicenseFee || 0) +
-              (formData.roundDown || 0);
-            const difference = Math.abs(calculatedSum - (formData.totalAmount || 0));
-            sumValid = difference <= 100;
-          }
-
-          const canSave = hasUsageAmount && hasTotalAmount && hasEditReason && sumValid;
+          const canSave = hasUsageAmount && hasTotalAmount && hasEditReason;
 
           return (
             <button
@@ -527,7 +491,7 @@ export default function UnitBillEditPage({
                   ? 'bg-blue-600 text-white hover:bg-blue-700'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               } disabled:opacity-50`}
-              title={!canSave ? '필수 항목을 모두 입력하고 유효성 검증을 통과해야 저장할 수 있습니다.' : ''}
+              title={!canSave ? '필수 항목을 모두 입력해야 저장할 수 있습니다.' : ''}
             >
               {saving ? (
                 <>
