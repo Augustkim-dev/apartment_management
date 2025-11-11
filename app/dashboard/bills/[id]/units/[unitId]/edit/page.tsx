@@ -377,7 +377,13 @@ export default function UnitBillEditPage({
                   type="number"
                   value={formData[key as keyof typeof formData] as number || 0}
                   onChange={(e) => {
-                    const newValue = parseFloat(e.target.value) || 0;
+                    let newValue = parseFloat(e.target.value) || 0;
+
+                    // 역률요금은 자동으로 음수로 변환 (양수 입력 시)
+                    if (key === 'powerFactorFee' && newValue > 0) {
+                      newValue = -newValue;
+                    }
+
                     setFormData({ ...formData, [key]: newValue });
                   }}
                   disabled={editMode === 'proportional'}
