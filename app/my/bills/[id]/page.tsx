@@ -382,8 +382,8 @@ export default function BillDetailPage() {
                       <tr className="bg-gray-50 font-semibold">
                         <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900">전기요금계</td>
                         <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right font-semibold text-gray-900">{formatCurrency(invoiceData.currentCharges.subtotal)}원</td>
-                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">{formatCurrency(invoiceData.previousCharges.subtotal)}원</td>
-                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right font-semibold text-gray-900 hidden sm:table-cell">{formatCurrency(invoiceData.previousCharges.subtotal)}원</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right font-semibold text-gray-900 hidden sm:table-cell">
                           {invoiceData.currentCharges.subtotal - invoiceData.previousCharges.subtotal > 0 ? '+' : ''}
                           {formatCurrency(invoiceData.currentCharges.subtotal - invoiceData.previousCharges.subtotal)}원
                         </td>
@@ -391,8 +391,8 @@ export default function BillDetailPage() {
                       <tr className="hover:bg-gray-50">
                         <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900">부가가치세</td>
                         <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right font-semibold text-gray-900">{formatCurrency(invoiceData.currentCharges.vat)}원</td>
-                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">{formatCurrency(invoiceData.previousCharges.vat)}원</td>
-                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right font-semibold text-gray-900 hidden sm:table-cell">{formatCurrency(invoiceData.previousCharges.vat)}원</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right font-semibold text-gray-900 hidden sm:table-cell">
                           {invoiceData.currentCharges.vat - invoiceData.previousCharges.vat > 0 ? '+' : ''}
                           {formatCurrency(invoiceData.currentCharges.vat - invoiceData.previousCharges.vat)}원
                         </td>
@@ -400,8 +400,8 @@ export default function BillDetailPage() {
                       <tr className="hover:bg-gray-50">
                         <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900">전력기금</td>
                         <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right font-semibold text-gray-900">{formatCurrency(invoiceData.currentCharges.powerFund)}원</td>
-                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">{formatCurrency(invoiceData.previousCharges.powerFund)}원</td>
-                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right font-semibold text-gray-900 hidden sm:table-cell">{formatCurrency(invoiceData.previousCharges.powerFund)}원</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right font-semibold text-gray-900 hidden sm:table-cell">
                           {invoiceData.currentCharges.powerFund - invoiceData.previousCharges.powerFund > 0 ? '+' : ''}
                           {formatCurrency(invoiceData.currentCharges.powerFund - invoiceData.previousCharges.powerFund)}원
                         </td>
@@ -499,19 +499,19 @@ export default function BillDetailPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <p className="text-xs sm:text-sm text-gray-500">계약 종별</p>
-                        <p className="font-medium text-sm sm:text-base">{invoiceData.contractInfo.contractType}</p>
+                        <p className="font-semibold text-sm sm:text-base text-gray-900">{invoiceData.contractInfo.contractType}</p>
                       </div>
                       <div>
                         <p className="text-xs sm:text-sm text-gray-500">계약 전력</p>
-                        <p className="font-medium text-sm sm:text-base">{invoiceData.contractInfo.contractPower} kW</p>
+                        <p className="font-semibold text-sm sm:text-base text-gray-900">{invoiceData.contractInfo.contractPower} kW</p>
                       </div>
                       <div>
                         <p className="text-xs sm:text-sm text-gray-500">요금적용 전력</p>
-                        <p className="font-medium text-sm sm:text-base">{invoiceData.contractInfo.appliedPower} kW</p>
+                        <p className="font-semibold text-sm sm:text-base text-gray-900">{invoiceData.contractInfo.appliedPower} kW</p>
                       </div>
                       <div>
                         <p className="text-xs sm:text-sm text-gray-500">기본료 단가</p>
-                        <p className="font-medium text-sm sm:text-base">1kW당 {formatCurrency(invoiceData.contractInfo.basicFeeRate)}원</p>
+                        <p className="font-semibold text-sm sm:text-base text-gray-900">1kW당 {formatCurrency(invoiceData.contractInfo.basicFeeRate)}원</p>
                       </div>
                     </div>
                   </div>
@@ -534,19 +534,19 @@ export default function BillDetailPage() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm">
                         <div className="flex justify-between">
                           <span className="text-gray-500">기본료:</span>
-                          <span>{formatCurrency(invoiceData.buildingTotal.basicFee)}원</span>
+                          <span className="font-semibold text-gray-900">{formatCurrency(invoiceData.buildingTotal.basicFee)}원</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-500">전력량요금:</span>
-                          <span>{formatCurrency(invoiceData.buildingTotal.powerFee)}원</span>
+                          <span className="font-semibold text-gray-900">{formatCurrency(invoiceData.buildingTotal.powerFee)}원</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-500">기후환경요금:</span>
-                          <span>{formatCurrency(invoiceData.buildingTotal.climateFee)}원</span>
+                          <span className="font-semibold text-gray-900">{formatCurrency(invoiceData.buildingTotal.climateFee)}원</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-500">연료비조정액:</span>
-                          <span>{formatCurrency(invoiceData.buildingTotal.fuelFee)}원</span>
+                          <span className="font-semibold text-gray-900">{formatCurrency(invoiceData.buildingTotal.fuelFee)}원</span>
                         </div>
                       </div>
                     </div>
