@@ -68,6 +68,15 @@ export async function PATCH(
 
     // Request body 파싱
     const body: UnitBillEditRequest = await request.json();
+    console.log('API 라우트 - 받은 데이터:', {
+      monthlyBillId,
+      unitBillId,
+      editMode: body.editMode,
+      usageAmount: body.usageAmount,
+      usageRate: body.usageRate,
+      totalAmount: body.totalAmount,
+      editReason: body.editReason
+    });
 
     // 유효성 검사 - 필수 항목
     if (!body.editReason || body.editReason.trim() === '') {
@@ -132,16 +141,19 @@ export async function PATCH(
     const userId = 1;
 
     // 업데이트 실행
+    console.log('서비스 호출 전 - 파라미터:', { unitBillId, monthlyBillId, userId });
     const result = await unitBillsService.updateUnitBill(
       unitBillId,
       monthlyBillId,
       body,
       userId
     );
+    console.log('서비스 호출 후 - 결과:', result);
 
     if (result.success) {
       return NextResponse.json(result);
     } else {
+      console.error('업데이트 실패:', result);
       return NextResponse.json(
         { error: result.message },
         { status: 500 }

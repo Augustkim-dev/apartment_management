@@ -16,6 +16,7 @@ export interface UnitBillEditRequest {
   previousReading?: number;
   currentReading?: number;
   usageAmount: number;
+  usageRate?: number;  // 비율재계산 시 사용되는 사용 비율
 
   // 요금 항목
   basicFee?: number;

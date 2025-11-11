@@ -565,13 +565,17 @@ export class UnitBillsService {
 
         // 2. 비율 재계산 모드인 경우
         let finalUpdates = { ...updates };
+        console.log('서비스 - 받은 updates:', updates);
+
         if (updates.editMode === 'proportional') {
+          console.log('비율재계산 모드 - recalculateFees 호출');
           const calculated = await this.recalculateFees(
             conn,
             monthlyBillId,
             unitBillId,
             updates.usageAmount
           );
+          console.log('비율재계산 결과:', calculated);
 
           finalUpdates = {
             ...updates,
@@ -587,9 +591,38 @@ export class UnitBillsService {
             roundDown: calculated.roundDown,
             totalAmount: calculated.totalAmount
           };
+          console.log('finalUpdates (비율재계산):', finalUpdates);
+        } else {
+          console.log('직접입력 모드 - finalUpdates:', finalUpdates);
         }
 
         // 3. unit_bills 업데이트
+        const updateParams = [
+          finalUpdates.previousReading ?? currentBill.previous_reading,
+          finalUpdates.currentReading ?? currentBill.current_reading,
+          finalUpdates.usageAmount,
+          finalUpdates.usageRate ?? currentBill.usage_rate,
+          finalUpdates.basicFee ?? currentBill.basic_fee,
+          finalUpdates.powerFee ?? currentBill.power_fee,
+          finalUpdates.climateFee ?? currentBill.climate_fee,
+          finalUpdates.fuelFee ?? currentBill.fuel_fee,
+          finalUpdates.powerFactorFee ?? currentBill.power_factor_fee,
+          finalUpdates.vat ?? currentBill.vat,
+          finalUpdates.powerFund ?? currentBill.power_fund,
+          finalUpdates.tvLicenseFee ?? currentBill.tv_license_fee,
+          finalUpdates.roundDown ?? currentBill.round_down,
+          finalUpdates.totalAmount,
+          finalUpdates.editReason,
+          finalUpdates.notes ?? currentBill.notes,
+          unitBillId
+        ];
+
+        console.log('DB UPDATE 실행 - 파라미터:', {
+          totalAmount: finalUpdates.totalAmount,
+          usageRate: finalUpdates.usageRate,
+          unitBillId
+        });
+
         const [updateResult] = await conn.execute<ResultSetHeader>(
           `UPDATE unit_bills SET
             previous_reading = ?,
@@ -611,26 +644,13 @@ export class UnitBillsService {
             is_manually_edited = TRUE,
             updated_at = NOW()
           WHERE id = ?`,
-          [
-            finalUpdates.previousReading ?? currentBill.previous_reading,
-            finalUpdates.currentReading ?? currentBill.current_reading,
-            finalUpdates.usageAmount,
-            finalUpdates.usageRate ?? currentBill.usage_rate,
-            finalUpdates.basicFee ?? currentBill.basic_fee,
-            finalUpdates.powerFee ?? currentBill.power_fee,
-            finalUpdates.climateFee ?? currentBill.climate_fee,
-            finalUpdates.fuelFee ?? currentBill.fuel_fee,
-            finalUpdates.powerFactorFee ?? currentBill.power_factor_fee,
-            finalUpdates.vat ?? currentBill.vat,
-            finalUpdates.powerFund ?? currentBill.power_fund,
-            finalUpdates.tvLicenseFee ?? currentBill.tv_license_fee,
-            finalUpdates.roundDown ?? currentBill.round_down,
-            finalUpdates.totalAmount,
-            finalUpdates.editReason,
-            finalUpdates.notes ?? currentBill.notes,
-            unitBillId
-          ]
+          updateParams
         );
+
+        console.log('DB UPDATE 결과:', {
+          affectedRows: updateResult.affectedRows,
+          changedRows: updateResult.changedRows
+        });
 
         if (updateResult.affectedRows === 0) {
           return {

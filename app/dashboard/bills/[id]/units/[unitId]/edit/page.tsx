@@ -104,9 +104,17 @@ export default function UnitBillEditPage({
 
       const totalAmount = basicFee + powerFee + climateFee + fuelFee + powerFactorFee + vat + powerFund + tvLicenseFee;
 
+      console.log('비율재계산 모드 - 계산 결과:', {
+        newUsage,
+        usageRate,
+        totalAmount,
+        breakdown: { basicFee, powerFee, climateFee, fuelFee, powerFactorFee, vat, powerFund, tvLicenseFee }
+      });
+
       setFormData({
         ...formData,
         usageAmount: newUsage,
+        usageRate,  // usageRate 추가
         basicFee,
         powerFee,
         climateFee,
@@ -180,7 +188,10 @@ export default function UnitBillEditPage({
 
   // 저장
   const handleSubmit = async () => {
+    console.log('저장 시도 - 현재 formData:', formData);
+
     if (!validate()) {
+      console.log('유효성 검증 실패:', errors);
       return;
     }
 
@@ -191,6 +202,12 @@ export default function UnitBillEditPage({
     setSaving(true);
 
     try {
+      console.log('API 요청 전송:', {
+        url: `/api/bills/${billId}/units/${unitId}/edit`,
+        method: 'PATCH',
+        body: formData
+      });
+
       const response = await fetch(`/api/bills/${billId}/units/${unitId}/edit`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -198,11 +215,13 @@ export default function UnitBillEditPage({
       });
 
       const result = await response.json();
+      console.log('API 응답:', { status: response.status, result });
 
       if (response.ok && result.success) {
         alert('청구서가 수정되었습니다.');
         router.push(`/dashboard/bills/${billId}`);
       } else {
+        console.error('수정 실패:', result);
         alert(`수정 실패: ${result.error || result.message}`);
       }
     } catch (error) {
@@ -369,6 +388,40 @@ export default function UnitBillEditPage({
             </div>
           ))}
           <div className="border-t pt-3">
+            {/* 직접 입력 모드일 때 실시간 합계 표시 */}
+            {editMode === 'manual' && (() => {
+              const calculatedSum =
+                (formData.basicFee || 0) +
+                (formData.powerFee || 0) +
+                (formData.climateFee || 0) +
+                (formData.fuelFee || 0) +
+                (formData.powerFactorFee || 0) +
+                (formData.vat || 0) +
+                (formData.powerFund || 0) +
+                (formData.tvLicenseFee || 0) +
+                (formData.roundDown || 0);
+              const difference = calculatedSum - (formData.totalAmount || 0);
+              const isValid = Math.abs(difference) <= 100;
+
+              return (
+                <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-700">개별 항목 합계:</span>
+                    <span className="font-semibold text-gray-900">{calculatedSum.toLocaleString()}원</span>
+                  </div>
+                  {difference !== 0 && (
+                    <div className="mt-2 flex items-center justify-between text-sm">
+                      <span className="text-gray-700">차액:</span>
+                      <span className={`font-semibold ${isValid ? 'text-green-600' : 'text-red-600'}`}>
+                        {difference > 0 ? '+' : ''}{difference.toLocaleString()}원
+                        {isValid ? ' ✓' : ' ✗ (허용 범위 초과)'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
             <div className="flex items-center justify-between font-bold text-lg">
               <span>총 청구액:</span>
               {editMode === 'manual' ? (
@@ -387,7 +440,7 @@ export default function UnitBillEditPage({
             </div>
             {editMode === 'manual' && (
               <p className="text-sm text-gray-500 mt-2 text-right">
-                직접입력 모드에서는 총 청구액을 직접 수정할 수 있습니다.
+                직접입력 모드에서는 총 청구액을 직접 수정할 수 있습니다. (차액 허용 범위: ±100원)
               </p>
             )}
           </div>
@@ -435,20 +488,59 @@ export default function UnitBillEditPage({
         >
           취소
         </button>
-        <button
-          onClick={handleSubmit}
-          disabled={saving}
-          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-        >
-          {saving ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-              저장 중...
-            </>
-          ) : (
-            '저장'
-          )}
-        </button>
+        {(() => {
+          // 유효성 검증 사전 체크
+          const hasUsageAmount = formData.usageAmount && formData.usageAmount > 0;
+          const hasTotalAmount = formData.totalAmount && formData.totalAmount > 0;
+          const hasEditReason = formData.editReason && formData.editReason.trim() !== '';
+
+          let sumValid = true;
+          if (editMode === 'manual') {
+            const calculatedSum =
+              (formData.basicFee || 0) +
+              (formData.powerFee || 0) +
+              (formData.climateFee || 0) +
+              (formData.fuelFee || 0) +
+              (formData.powerFactorFee || 0) +
+              (formData.vat || 0) +
+              (formData.powerFund || 0) +
+              (formData.tvLicenseFee || 0) +
+              (formData.roundDown || 0);
+            const difference = Math.abs(calculatedSum - (formData.totalAmount || 0));
+            sumValid = difference <= 100;
+          }
+
+          const canSave = hasUsageAmount && hasTotalAmount && hasEditReason && sumValid;
+
+          return (
+            <button
+              onClick={handleSubmit}
+              disabled={saving || !canSave}
+              className={`px-6 py-2 rounded-lg flex items-center transition-all ${
+                canSave
+                  ? 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              } disabled:opacity-50`}
+              title={!canSave ? '필수 항목을 모두 입력하고 유효성 검증을 통과해야 저장할 수 있습니다.' : ''}
+            >
+              {saving ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  저장 중...
+                </>
+              ) : (
+                <>
+                  저장
+                  {!canSave && (
+                    <svg className="w-4 h-4 ml-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                </>
+              )}
+            </button>
+          );
+        })()}
       </div>
     </div>
   );
