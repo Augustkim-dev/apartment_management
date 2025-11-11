@@ -182,7 +182,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-900">2025년 1월 청구서 생성</p>
-                <p className="text-sm text-gray-500">관리자 • 2시간 전</p>
+                <p className="text-sm text-gray-600">관리자 • 2시간 전</p>
               </div>
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                 완료
@@ -193,7 +193,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-900">203호 전기료 납부</p>
-                <p className="text-sm text-gray-500">5시간 전</p>
+                <p className="text-sm text-gray-600">5시간 전</p>
               </div>
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                 납부
@@ -204,7 +204,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-900">PDF 파일 업로드</p>
-                <p className="text-sm text-gray-500">1일 전</p>
+                <p className="text-sm text-gray-600">1일 전</p>
               </div>
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                 업로드

@@ -167,7 +167,7 @@ export default async function MyDashboard() {
         </div>
         <div className="divide-y divide-gray-200">
           {recentBills.length === 0 ? (
-            <div className="px-6 py-8 text-center text-gray-500">
+            <div className="px-6 py-8 text-center text-gray-600">
               청구서가 없습니다.
             </div>
           ) : (

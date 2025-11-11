@@ -217,7 +217,7 @@ export default function UnitInvoicePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 print:bg-white">
       {/* 화면용 헤더 (인쇄 시 숨김) */}
       <div className="no-print bg-white shadow-sm mb-4">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -329,7 +329,7 @@ export default function UnitInvoicePage() {
                     <td className="border border-gray-300 px-2 py-0.5 text-right">{formatCurrency(invoiceData.currentCharges.powerFactorFee)}</td>
                     <td className="border border-gray-300 px-2 py-0.5 text-right">{formatCurrency(invoiceData.previousCharges.powerFactorFee)}</td>
                   </tr>
-                  <tr className="bg-gray-50">
+                  <tr className="bg-gray-50 print:bg-white">
                     <td className="border border-gray-300 px-2 py-0.5 font-semibold">전기요금계</td>
                     <td className="border border-gray-300 px-2 py-0.5 text-right font-semibold">{formatCurrency(invoiceData.currentCharges.subtotal)}</td>
                     <td className="border border-gray-300 px-2 py-0.5 text-right font-semibold">{formatCurrency(invoiceData.previousCharges.subtotal)}</td>
@@ -388,7 +388,7 @@ export default function UnitInvoicePage() {
           <div className="flex-1">
 
             {/* 한전 계약 사항 */}
-            <div className="bg-gray-50 p-3 rounded mb-4 print:mb-2 print:p-2">
+            <div className="bg-gray-50 print:bg-white p-3 rounded mb-4 print:mb-2 print:p-2">
               <h3 className="font-semibold mb-2 text-sm print:text-xs print:mb-1">◎ 한전 계약 사항</h3>
               <div className="space-y-0.5 text-sm print:text-xs">
                 <div className="flex">
@@ -415,7 +415,7 @@ export default function UnitInvoicePage() {
               <h3 className="font-semibold mb-2 text-sm print:text-xs print:mb-1">
                 ◎ 한전 고지 내역 (건물 전체)
               </h3>
-              <div className="bg-gray-50 p-2 rounded mb-2 print:mb-1">
+              <div className="bg-gray-50 print:bg-white p-2 rounded mb-2 print:mb-1">
                 <div className="flex justify-between text-sm print:text-xs">
                   <div>
                     <span className="font-semibold">청구 금액:</span>

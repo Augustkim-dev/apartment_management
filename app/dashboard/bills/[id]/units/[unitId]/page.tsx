@@ -551,10 +551,10 @@ export default function UnitInvoiceViewerPage() {
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">항목</th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">당월</th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">전월</th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">증감</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">항목</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase">당월</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase">전월</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase">증감</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">

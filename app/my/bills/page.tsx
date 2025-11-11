@@ -122,14 +122,14 @@ export default async function MyBillsPage() {
           <p className="text-2xl font-bold text-gray-900">
             {(!totalAmount || isNaN(totalAmount) ? 0 : Math.floor(totalAmount)).toLocaleString()}원
           </p>
-          <p className="text-xs text-gray-500 mt-1">전체 {bills.length}건</p>
+          <p className="text-xs text-gray-600 mt-1">전체 {bills.length}건</p>
         </div>
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-sm font-medium text-gray-600 mb-2">납부 완료</h3>
           <p className="text-2xl font-bold text-green-600">
             {(!paidAmount || isNaN(paidAmount) ? 0 : Math.floor(paidAmount)).toLocaleString()}원
           </p>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-gray-600 mt-1">
             {bills.filter(b => b.payment_status === 'paid').length}건
           </p>
         </div>
@@ -138,7 +138,7 @@ export default async function MyBillsPage() {
           <p className="text-2xl font-bold text-orange-600">
             {(!unpaidAmount || isNaN(unpaidAmount) ? 0 : Math.floor(unpaidAmount)).toLocaleString()}원
           </p>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-gray-600 mt-1">
             {bills.filter(b => b.payment_status !== 'paid').length}건
           </p>
         </div>
@@ -151,7 +151,7 @@ export default async function MyBillsPage() {
         </div>
 
         {bills.length === 0 ? (
-          <div className="px-6 py-8 text-center text-gray-500">
+          <div className="px-6 py-8 text-center text-gray-600">
             청구서가 없습니다.
           </div>
         ) : (
@@ -165,24 +165,24 @@ export default async function MyBillsPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <div className="flex-shrink-0">
-                      <DocumentTextIcon className="h-8 w-8 text-gray-400" />
+                      <DocumentTextIcon className="h-8 w-8 text-gray-500" />
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-900">
                         {bill.bill_year}년 {bill.bill_month}월 청구서
                       </p>
                       <div className="flex items-center gap-4 mt-1">
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-gray-600">
                           기본료: {(bill.basic_fee ? Math.floor(bill.basic_fee) : 0).toLocaleString()}원
                         </p>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-gray-600">
                           전력량요금: {(bill.power_fee ? Math.floor(bill.power_fee) : 0).toLocaleString()}원
                         </p>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-gray-600">
                           부가세: {(bill.vat ? Math.floor(bill.vat) : 0).toLocaleString()}원
                         </p>
                       </div>
-                      <p className="text-xs text-gray-400 mt-1">
+                      <p className="text-xs text-gray-500 mt-1">
                         납부기한: {new Date(bill.due_date).toLocaleDateString()}
                       </p>
                     </div>
@@ -199,7 +199,7 @@ export default async function MyBillsPage() {
                         </span>
                       </div>
                       {bill.payment_date && (
-                        <p className="text-xs text-gray-400 mt-1">
+                        <p className="text-xs text-gray-500 mt-1">
                           납부일: {new Date(bill.payment_date).toLocaleDateString()}
                         </p>
                       )}

@@ -134,7 +134,7 @@ export default function BillsPage() {
       {/* 검색 */}
       <div className="mb-6">
         <div className="relative">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500" />
           <input
             type="text"
             placeholder="연월로 검색 (예: 2025년 1월)"
@@ -151,7 +151,7 @@ export default function BillsPage() {
           <div className="text-center py-12">
             <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">청구서가 없습니다</h3>
-            <p className="mt-1 text-sm text-gray-500">새 청구서를 생성해주세요.</p>
+            <p className="mt-1 text-sm text-gray-600">새 청구서를 생성해주세요.</p>
             <div className="mt-6">
               <Link
                 href="/dashboard/upload"
@@ -172,15 +172,15 @@ export default function BillsPage() {
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
-                      <DocumentTextIcon className="h-10 w-10 text-gray-400 mr-4" />
+                      <DocumentTextIcon className="h-10 w-10 text-gray-500 mr-4" />
                       <div>
                         <p className="text-sm font-medium text-gray-900 hover:text-blue-600">
                           {bill.billYear}년 {bill.billMonth}월 청구서
                         </p>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-gray-600">
                           총 {bill.totalAmount.toLocaleString()}원 • {bill.totalUsage.toLocaleString()} kWh
                         </p>
-                        <p className="text-xs text-gray-400 mt-1">
+                        <p className="text-xs text-gray-500 mt-1">
                           {bill.paidCount}/{bill.unitCount} 호실 납부 완료
                         </p>
                       </div>
@@ -191,7 +191,7 @@ export default function BillsPage() {
                           e.stopPropagation();
                           handleRecalculate(bill.id);
                         }}
-                        className="p-2 text-gray-400 hover:text-green-600"
+                        className="p-2 text-gray-500 hover:text-green-600"
                         title="재계산"
                       >
                         <CalculatorIcon className="h-5 w-5" />
@@ -201,7 +201,7 @@ export default function BillsPage() {
                           e.stopPropagation();
                           router.push(`/dashboard/bills/${bill.id}/print`);
                         }}
-                        className="p-2 text-gray-400 hover:text-purple-600"
+                        className="p-2 text-gray-500 hover:text-purple-600"
                         title="출력"
                       >
                         <PrinterIcon className="h-5 w-5" />

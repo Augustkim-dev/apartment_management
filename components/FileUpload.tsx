@@ -102,7 +102,7 @@ export function FileUpload({ type, onUploadSuccess, onReset }: FileUploadProps) 
     <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
       <div className="text-center">
         <svg
-          className="mx-auto h-12 w-12 text-gray-400"
+          className="mx-auto h-12 w-12 text-gray-500"
           stroke="currentColor"
           fill="none"
           viewBox="0 0 48 48"
@@ -130,7 +130,7 @@ export function FileUpload({ type, onUploadSuccess, onReset }: FileUploadProps) 
               onChange={handleFileChange}
               disabled={isUploading}
             />
-            <span className="mt-1 block text-xs text-gray-500">
+            <span className="mt-1 block text-xs text-gray-600">
               {type === 'pdf' ? 'PDF 파일만' : 'Excel 파일만'} (최대 10MB)
             </span>
           </label>
@@ -140,7 +140,7 @@ export function FileUpload({ type, onUploadSuccess, onReset }: FileUploadProps) 
           <div className="mt-4">
             <div className="flex items-center justify-center">
               <svg
-                className="h-5 w-5 text-gray-400 mr-2"
+                className="h-5 w-5 text-gray-500 mr-2"
                 fill="currentColor"
                 viewBox="0 0 20 20"
               >
