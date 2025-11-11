@@ -504,23 +504,30 @@ export class UnitBillsService {
     }
 
     const building = buildingData[0];
-    const totalUsage = parseFloat(building.total_usage);
+    const totalUsage = parseFloat(building.total_usage) || 0;
 
     // 사용량 비율 계산
     const usageRate = newUsage / totalUsage;
 
     // 각 요금 항목 비율 계산 (10원 단위 반올림)
-    const basicFee = Math.round((parseFloat(building.basic_fee) * usageRate) / 10) * 10;
-    const powerFee = Math.round((parseFloat(building.power_fee) * usageRate) / 10) * 10;
-    const climateFee = Math.round((parseFloat(building.climate_fee) * usageRate) / 10) * 10;
-    const fuelFee = Math.round((parseFloat(building.fuel_fee) * usageRate) / 10) * 10;
-    const powerFactorFee = Math.round((parseFloat(building.power_factor_fee) * usageRate) / 10) * 10;
-    const vat = Math.round((parseFloat(building.vat) * usageRate) / 10) * 10;
-    const powerFund = Math.round((parseFloat(building.power_fund) * usageRate) / 10) * 10;
-    const tvLicenseFee = Math.round((parseFloat(building.tv_license_fee) * usageRate) / 10) * 10;
+    // null 또는 undefined 값을 0으로 처리
+    const basicFee = Math.round(((parseFloat(building.basic_fee) || 0) * usageRate) / 10) * 10;
+    const powerFee = Math.round(((parseFloat(building.power_fee) || 0) * usageRate) / 10) * 10;
+    const climateFee = Math.round(((parseFloat(building.climate_fee) || 0) * usageRate) / 10) * 10;
+    const fuelFee = Math.round(((parseFloat(building.fuel_fee) || 0) * usageRate) / 10) * 10;
+    const powerFactorFee = Math.round(((parseFloat(building.power_factor_fee) || 0) * usageRate) / 10) * 10;
+    const vat = Math.round(((parseFloat(building.vat) || 0) * usageRate) / 10) * 10;
+    const powerFund = Math.round(((parseFloat(building.power_fund) || 0) * usageRate) / 10) * 10;
+    const tvLicenseFee = Math.round(((parseFloat(building.tv_license_fee) || 0) * usageRate) / 10) * 10;
 
     // 총액 계산
     const totalAmount = basicFee + powerFee + climateFee + fuelFee + powerFactorFee + vat + powerFund + tvLicenseFee;
+
+    console.log('recalculateFees - 계산 완료:', {
+      usageRate,
+      totalAmount,
+      breakdown: { basicFee, powerFee, climateFee, fuelFee, powerFactorFee, vat, powerFund, tvLicenseFee }
+    });
 
     return {
       usageRate,
