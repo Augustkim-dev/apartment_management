@@ -560,22 +560,22 @@ export default function UnitInvoiceViewerPage() {
                     <tbody className="bg-white divide-y divide-gray-200">
                       <tr className="hover:bg-gray-50">
                         <td className="px-6 py-4 text-sm text-gray-900">기본요금</td>
-                        <td className="px-6 py-4 text-sm text-right">{formatCurrency(invoiceData.currentCharges.basicFee)}원</td>
-                        <td className="px-6 py-4 text-sm text-right">
+                        <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">{formatCurrency(invoiceData.currentCharges.basicFee)}원</td>
+                        <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">
                           {formatCurrency(invoiceData.previousCharges.basicFee)}원
                         </td>
-                        <td className="px-6 py-4 text-sm text-right">
+                        <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">
                           {invoiceData.currentCharges.basicFee - invoiceData.previousCharges.basicFee > 0 ? '+' : ''}
                           {formatCurrency(invoiceData.currentCharges.basicFee - invoiceData.previousCharges.basicFee)}원
                         </td>
                       </tr>
                       <tr className="hover:bg-gray-50">
                         <td className="px-6 py-4 text-sm text-gray-900">전력량요금</td>
-                        <td className="px-6 py-4 text-sm text-right">{formatCurrency(invoiceData.currentCharges.powerFee)}원</td>
-                        <td className="px-6 py-4 text-sm text-right">
+                        <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">{formatCurrency(invoiceData.currentCharges.powerFee)}원</td>
+                        <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">
                           {invoiceData.previousCharges ? formatCurrency(invoiceData.previousCharges.powerFee) + '원' : '-'}
                         </td>
-                        <td className="px-6 py-4 text-sm text-right">
+                        <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">
                           {invoiceData.previousCharges ? (
                             <>
                               {invoiceData.currentCharges.powerFee - invoiceData.previousCharges.powerFee > 0 ? '+' : ''}
@@ -586,11 +586,11 @@ export default function UnitInvoiceViewerPage() {
                       </tr>
                       <tr className="hover:bg-gray-50">
                         <td className="px-6 py-4 text-sm text-gray-900">기후환경요금</td>
-                        <td className="px-6 py-4 text-sm text-right">{formatCurrency(invoiceData.currentCharges.climateFee)}원</td>
-                        <td className="px-6 py-4 text-sm text-right">
+                        <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">{formatCurrency(invoiceData.currentCharges.climateFee)}원</td>
+                        <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">
                           {invoiceData.previousCharges ? formatCurrency(invoiceData.previousCharges.climateFee) + '원' : '-'}
                         </td>
-                        <td className="px-6 py-4 text-sm text-right">
+                        <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">
                           {invoiceData.previousCharges ? (
                             <>
                               {invoiceData.currentCharges.climateFee - invoiceData.previousCharges.climateFee > 0 ? '+' : ''}
@@ -601,11 +601,11 @@ export default function UnitInvoiceViewerPage() {
                       </tr>
                       <tr className="hover:bg-gray-50">
                         <td className="px-6 py-4 text-sm text-gray-900">연료비조정액</td>
-                        <td className="px-6 py-4 text-sm text-right">{formatCurrency(invoiceData.currentCharges.fuelFee)}원</td>
-                        <td className="px-6 py-4 text-sm text-right">
+                        <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">{formatCurrency(invoiceData.currentCharges.fuelFee)}원</td>
+                        <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">
                           {invoiceData.previousCharges ? formatCurrency(invoiceData.previousCharges.fuelFee) + '원' : '-'}
                         </td>
-                        <td className="px-6 py-4 text-sm text-right">
+                        <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">
                           {invoiceData.previousCharges ? (
                             <>
                               {invoiceData.currentCharges.fuelFee - invoiceData.previousCharges.fuelFee > 0 ? '+' : ''}
@@ -616,7 +616,7 @@ export default function UnitInvoiceViewerPage() {
                       </tr>
                       <tr className="hover:bg-gray-50">
                         <td className="px-6 py-4 text-sm text-gray-900">역률요금</td>
-                        <td className="px-6 py-4 text-sm text-right">{formatCurrency(invoiceData.currentCharges.powerFactorFee)}원</td>
+                        <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">{formatCurrency(invoiceData.currentCharges.powerFactorFee)}원</td>
                         <td className="px-6 py-4 text-sm text-right">
                           {invoiceData.previousCharges ? formatCurrency(invoiceData.previousCharges.powerFactorFee) + '원' : '-'}
                         </td>
@@ -626,8 +626,8 @@ export default function UnitInvoiceViewerPage() {
                       </tr>
                       <tr className="bg-gray-50 font-semibold">
                         <td className="px-6 py-4 text-sm text-gray-900">전기요금계</td>
-                        <td className="px-6 py-4 text-sm text-right">{formatCurrency(invoiceData.currentCharges.subtotal)}원</td>
-                        <td className="px-6 py-4 text-sm text-right">{formatCurrency(invoiceData.previousCharges.subtotal)}원</td>
+                        <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">{formatCurrency(invoiceData.currentCharges.subtotal)}원</td>
+                        <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">{formatCurrency(invoiceData.previousCharges.subtotal)}원</td>
                         <td className="px-6 py-4 text-sm text-right">
                           {invoiceData.currentCharges.subtotal - invoiceData.previousCharges.subtotal > 0 ? '+' : ''}
                           {formatCurrency(invoiceData.currentCharges.subtotal - invoiceData.previousCharges.subtotal)}원
@@ -635,8 +635,8 @@ export default function UnitInvoiceViewerPage() {
                       </tr>
                       <tr className="hover:bg-gray-50">
                         <td className="px-6 py-4 text-sm text-gray-900">부가가치세</td>
-                        <td className="px-6 py-4 text-sm text-right">{formatCurrency(invoiceData.currentCharges.vat)}원</td>
-                        <td className="px-6 py-4 text-sm text-right">{formatCurrency(invoiceData.previousCharges.vat)}원</td>
+                        <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">{formatCurrency(invoiceData.currentCharges.vat)}원</td>
+                        <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">{formatCurrency(invoiceData.previousCharges.vat)}원</td>
                         <td className="px-6 py-4 text-sm text-right">
                           {invoiceData.currentCharges.vat - invoiceData.previousCharges.vat > 0 ? '+' : ''}
                           {formatCurrency(invoiceData.currentCharges.vat - invoiceData.previousCharges.vat)}원
@@ -644,8 +644,8 @@ export default function UnitInvoiceViewerPage() {
                       </tr>
                       <tr className="hover:bg-gray-50">
                         <td className="px-6 py-4 text-sm text-gray-900">전력기금</td>
-                        <td className="px-6 py-4 text-sm text-right">{formatCurrency(invoiceData.currentCharges.powerFund)}원</td>
-                        <td className="px-6 py-4 text-sm text-right">{formatCurrency(invoiceData.previousCharges.powerFund)}원</td>
+                        <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">{formatCurrency(invoiceData.currentCharges.powerFund)}원</td>
+                        <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">{formatCurrency(invoiceData.previousCharges.powerFund)}원</td>
                         <td className="px-6 py-4 text-sm text-right">
                           {invoiceData.currentCharges.powerFund - invoiceData.previousCharges.powerFund > 0 ? '+' : ''}
                           {formatCurrency(invoiceData.currentCharges.powerFund - invoiceData.previousCharges.powerFund)}원

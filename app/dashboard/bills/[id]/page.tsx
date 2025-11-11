@@ -521,11 +521,11 @@ export default function BillDetailPage() {
           <div className="space-y-2">
             <div className="flex justify-between">
               <span className="text-sm text-gray-500">기본료</span>
-              <span className="text-sm font-medium">{Number(bill.basicFee).toLocaleString()}원</span>
+              <span className="text-sm font-medium text-gray-900">{Number(bill.basicFee).toLocaleString()}원</span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-gray-500">전력량요금</span>
-              <span className="text-sm font-medium">{Number(bill.powerFee).toLocaleString()}원</span>
+              <span className="text-sm font-medium text-gray-900">{Number(bill.powerFee).toLocaleString()}원</span>
             </div>
           </div>
         </div>
@@ -535,11 +535,11 @@ export default function BillDetailPage() {
           <div className="space-y-2">
             <div className="flex justify-between">
               <span className="text-sm text-gray-500">기후환경요금</span>
-              <span className="text-sm font-medium">{Number(bill.climateFee).toLocaleString()}원</span>
+              <span className="text-sm font-medium text-gray-900">{Number(bill.climateFee).toLocaleString()}원</span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-gray-500">연료비조정액</span>
-              <span className="text-sm font-medium">{Number(bill.fuelFee).toLocaleString()}원</span>
+              <span className="text-sm font-medium text-gray-900">{Number(bill.fuelFee).toLocaleString()}원</span>
             </div>
           </div>
         </div>
@@ -549,15 +549,15 @@ export default function BillDetailPage() {
           <div className="space-y-2">
             <div className="flex justify-between">
               <span className="text-sm text-gray-500">부가세</span>
-              <span className="text-sm font-medium">{Number(bill.vat).toLocaleString()}원</span>
+              <span className="text-sm font-medium text-gray-900">{Number(bill.vat).toLocaleString()}원</span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-gray-500">전력기금</span>
-              <span className="text-sm font-medium">{Number(bill.powerFund).toLocaleString()}원</span>
+              <span className="text-sm font-medium text-gray-900">{Number(bill.powerFund).toLocaleString()}원</span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-gray-500">TV수신료</span>
-              <span className="text-sm font-medium">{Number(bill.tvLicenseFee).toLocaleString()}원</span>
+              <span className="text-sm font-medium text-gray-900">{Number(bill.tvLicenseFee).toLocaleString()}원</span>
             </div>
           </div>
         </div>
@@ -567,7 +567,7 @@ export default function BillDetailPage() {
           <div className="space-y-2">
             <div className="flex justify-between">
               <span className="text-sm text-gray-500">소계</span>
-              <span className="text-sm font-medium">
+              <span className="text-sm font-medium text-gray-900">
                 {(
                   Number(bill.basicFee) +
                   Number(bill.powerFee) +
@@ -581,7 +581,7 @@ export default function BillDetailPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-gray-500">단수처리</span>
-              <span className="text-sm font-medium">{Number(bill.roundDown).toLocaleString()}원</span>
+              <span className="text-sm font-medium text-gray-900">{Number(bill.roundDown).toLocaleString()}원</span>
             </div>
             <div className="border-t pt-2">
               <div className="flex justify-between">

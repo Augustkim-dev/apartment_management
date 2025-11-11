@@ -337,8 +337,8 @@ export default function BillDetailPage() {
                     <tbody className="bg-white divide-y divide-gray-200">
                       <tr className="hover:bg-gray-50">
                         <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900">기본요금</td>
-                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right">{formatCurrency(invoiceData.currentCharges.basicFee)}원</td>
-                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right font-semibold text-gray-900">{formatCurrency(invoiceData.currentCharges.basicFee)}원</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right font-semibold text-gray-900 hidden sm:table-cell">
                           {formatCurrency(invoiceData.previousCharges.basicFee)}원
                         </td>
                         <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">
@@ -348,8 +348,8 @@ export default function BillDetailPage() {
                       </tr>
                       <tr className="hover:bg-gray-50">
                         <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900">전력량요금</td>
-                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right">{formatCurrency(invoiceData.currentCharges.powerFee)}원</td>
-                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right font-semibold text-gray-900">{formatCurrency(invoiceData.currentCharges.powerFee)}원</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right font-semibold text-gray-900 hidden sm:table-cell">
                           {formatCurrency(invoiceData.previousCharges.powerFee)}원
                         </td>
                         <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">
@@ -359,8 +359,8 @@ export default function BillDetailPage() {
                       </tr>
                       <tr className="hover:bg-gray-50">
                         <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900">기후환경요금</td>
-                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right">{formatCurrency(invoiceData.currentCharges.climateFee)}원</td>
-                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right font-semibold text-gray-900">{formatCurrency(invoiceData.currentCharges.climateFee)}원</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right font-semibold text-gray-900 hidden sm:table-cell">
                           {formatCurrency(invoiceData.previousCharges.climateFee)}원
                         </td>
                         <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">
@@ -370,8 +370,8 @@ export default function BillDetailPage() {
                       </tr>
                       <tr className="hover:bg-gray-50">
                         <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900">연료비조정액</td>
-                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right">{formatCurrency(invoiceData.currentCharges.fuelFee)}원</td>
-                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right font-semibold text-gray-900">{formatCurrency(invoiceData.currentCharges.fuelFee)}원</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right font-semibold text-gray-900 hidden sm:table-cell">
                           {formatCurrency(invoiceData.previousCharges.fuelFee)}원
                         </td>
                         <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">
@@ -381,7 +381,7 @@ export default function BillDetailPage() {
                       </tr>
                       <tr className="bg-gray-50 font-semibold">
                         <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900">전기요금계</td>
-                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right">{formatCurrency(invoiceData.currentCharges.subtotal)}원</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right font-semibold text-gray-900">{formatCurrency(invoiceData.currentCharges.subtotal)}원</td>
                         <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">{formatCurrency(invoiceData.previousCharges.subtotal)}원</td>
                         <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">
                           {invoiceData.currentCharges.subtotal - invoiceData.previousCharges.subtotal > 0 ? '+' : ''}
@@ -390,7 +390,7 @@ export default function BillDetailPage() {
                       </tr>
                       <tr className="hover:bg-gray-50">
                         <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900">부가가치세</td>
-                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right">{formatCurrency(invoiceData.currentCharges.vat)}원</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right font-semibold text-gray-900">{formatCurrency(invoiceData.currentCharges.vat)}원</td>
                         <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">{formatCurrency(invoiceData.previousCharges.vat)}원</td>
                         <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">
                           {invoiceData.currentCharges.vat - invoiceData.previousCharges.vat > 0 ? '+' : ''}
@@ -399,7 +399,7 @@ export default function BillDetailPage() {
                       </tr>
                       <tr className="hover:bg-gray-50">
                         <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900">전력기금</td>
-                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right">{formatCurrency(invoiceData.currentCharges.powerFund)}원</td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right font-semibold text-gray-900">{formatCurrency(invoiceData.currentCharges.powerFund)}원</td>
                         <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">{formatCurrency(invoiceData.previousCharges.powerFund)}원</td>
                         <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">
                           {invoiceData.currentCharges.powerFund - invoiceData.previousCharges.powerFund > 0 ? '+' : ''}
@@ -409,7 +409,7 @@ export default function BillDetailPage() {
                       <tr className="bg-blue-50 font-bold">
                         <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900">당월 청구금액</td>
                         <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right text-blue-600">{formatCurrency(invoiceData.currentCharges.total)}원</td>
-                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right hidden sm:table-cell">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right font-semibold text-gray-900 hidden sm:table-cell">
                           {formatCurrency(invoiceData.previousCharges.total)}원
                         </td>
                         <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-right text-blue-600 hidden sm:table-cell">
