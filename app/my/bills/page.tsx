@@ -172,17 +172,17 @@ export default async function MyBillsPage() {
                         {bill.bill_year}년 {bill.bill_month}월 청구서
                       </p>
                       <div className="flex items-center gap-4 mt-1">
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm font-semibold text-gray-900">
                           기본료: {(bill.basic_fee ? Math.floor(bill.basic_fee) : 0).toLocaleString()}원
                         </p>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm font-semibold text-gray-900">
                           전력량요금: {(bill.power_fee ? Math.floor(bill.power_fee) : 0).toLocaleString()}원
                         </p>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm font-semibold text-gray-900">
                           부가세: {(bill.vat ? Math.floor(bill.vat) : 0).toLocaleString()}원
                         </p>
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs font-semibold text-gray-900 mt-1">
                         납부기한: {new Date(bill.due_date).toLocaleDateString()}
                       </p>
                     </div>
@@ -199,7 +199,7 @@ export default async function MyBillsPage() {
                         </span>
                       </div>
                       {bill.payment_date && (
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs font-semibold text-gray-900 mt-1">
                           납부일: {new Date(bill.payment_date).toLocaleDateString()}
                         </p>
                       )}

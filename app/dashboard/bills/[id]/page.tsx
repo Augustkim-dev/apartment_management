@@ -438,11 +438,11 @@ export default function BillDetailPage() {
               <h1 className="text-2xl font-bold text-gray-900">
                 {bill.billYear}년 {bill.billMonth}월 청구서
               </h1>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm font-semibold text-gray-900 mt-1">
                 사용 기간: {formatDate(bill.billingPeriodStart)} ~ {formatDate(bill.billingPeriodEnd)}
               </p>
               {bill.dueDate && (
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-sm font-semibold text-gray-900 mt-1">
                   납부기한: {formatDate(bill.dueDate)}
                 </p>
               )}

@@ -178,7 +178,7 @@ export default function UsersPage() {
                       <div className="text-sm text-gray-900">{user.phone}</div>
                     )}
                     {user.email && (
-                      <div className="text-sm text-gray-500">{user.email}</div>
+                      <div className="text-sm font-semibold text-gray-900">{user.email}</div>
                     )}
                   </div>
                 </td>
@@ -203,7 +203,7 @@ export default function UsersPage() {
                      user.status === 'inactive' ? '비활성' : '대기'}
                   </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
                   {user.move_in_date
                     ? new Date(user.move_in_date).toLocaleDateString()
                     : '-'}

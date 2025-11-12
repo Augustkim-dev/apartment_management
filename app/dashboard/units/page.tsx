@@ -234,13 +234,13 @@ export default function UnitsPage() {
                             <p className="text-sm text-gray-500">{unit.tenantName}</p>
                             <div className="flex items-center gap-3 mt-1">
                               {unit.contact && (
-                                <span className="flex items-center text-xs text-gray-400">
+                                <span className="flex items-center text-xs font-semibold text-gray-900">
                                   <PhoneIcon className="h-3 w-3 mr-1" />
                                   {unit.contact}
                                 </span>
                               )}
                               {unit.email && (
-                                <span className="flex items-center text-xs text-gray-400">
+                                <span className="flex items-center text-xs font-semibold text-gray-900">
                                   <EnvelopeIcon className="h-3 w-3 mr-1" />
                                   {unit.email}
                                 </span>

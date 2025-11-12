@@ -427,7 +427,7 @@ export default function SettlementsPage() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {settlement.tenantName || '-'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
                         {settlement.contact || '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
@@ -444,7 +444,7 @@ export default function SettlementsPage() {
                           {getStatusBadge(settlement.paymentStatus)}
                         </button>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-center font-semibold text-gray-900">
                         {editingBillId === settlement.unitBillId ? (
                           <div className="flex items-center justify-center space-x-2">
                             <input
