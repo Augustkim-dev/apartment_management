@@ -42,10 +42,6 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '10')));
     const status = searchParams.get('status') || 'all'; // 'all', 'paid', 'unpaid'
 
-    // 사용자의 입주/퇴거일
-    const moveInDate = session.user.moveInDate || '2024-01-01';
-    const moveOutDate = session.user.moveOutDate || '2099-12-31';
-
     // 상태 필터 조건 생성
     let statusCondition = '';
     if (status === 'paid') {
@@ -54,7 +50,7 @@ export async function GET(request: NextRequest) {
       statusCondition = "AND ub.payment_status != 'paid'";
     }
 
-    // 1. 전체 요약 통계 조회 (필터와 무관하게 전체 기준)
+    // 1. 전체 요약 통계 조회 (해당 호실의 모든 청구서)
     const summaryResult = await query<SummaryRow[]>(`
       SELECT
         COALESCE(SUM(ub.total_amount), 0) as total_amount,
@@ -64,11 +60,8 @@ export async function GET(request: NextRequest) {
         SUM(CASE WHEN ub.payment_status = 'paid' THEN 1 ELSE 0 END) as paid_count,
         SUM(CASE WHEN ub.payment_status != 'paid' THEN 1 ELSE 0 END) as unpaid_count
       FROM unit_bills ub
-      JOIN monthly_bills mb ON ub.monthly_bill_id = mb.id
       WHERE ub.unit_id = ?
-      AND DATE(CONCAT(mb.bill_year, '-', LPAD(mb.bill_month, 2, '0'), '-01')) >= ?
-      AND DATE(CONCAT(mb.bill_year, '-', LPAD(mb.bill_month, 2, '0'), '-01')) <= ?
-    `, [session.user.unitId, moveInDate, moveOutDate]);
+    `, [session.user.unitId]);
 
     const summary = summaryResult[0] || {
       total_amount: 0,
@@ -83,12 +76,9 @@ export async function GET(request: NextRequest) {
     const countResult = await query<{ count: number }[]>(`
       SELECT COUNT(*) as count
       FROM unit_bills ub
-      JOIN monthly_bills mb ON ub.monthly_bill_id = mb.id
       WHERE ub.unit_id = ?
-      AND DATE(CONCAT(mb.bill_year, '-', LPAD(mb.bill_month, 2, '0'), '-01')) >= ?
-      AND DATE(CONCAT(mb.bill_year, '-', LPAD(mb.bill_month, 2, '0'), '-01')) <= ?
       ${statusCondition}
-    `, [session.user.unitId, moveInDate, moveOutDate]);
+    `, [session.user.unitId]);
 
     const total = countResult[0]?.count || 0;
     const totalPages = Math.ceil(total / limit);
@@ -112,12 +102,10 @@ export async function GET(request: NextRequest) {
       JOIN monthly_bills mb ON ub.monthly_bill_id = mb.id
       JOIN units u ON ub.unit_id = u.id
       WHERE ub.unit_id = ?
-      AND DATE(CONCAT(mb.bill_year, '-', LPAD(mb.bill_month, 2, '0'), '-01')) >= ?
-      AND DATE(CONCAT(mb.bill_year, '-', LPAD(mb.bill_month, 2, '0'), '-01')) <= ?
       ${statusCondition}
       ORDER BY mb.bill_year DESC, mb.bill_month DESC
       LIMIT ? OFFSET ?
-    `, [session.user.unitId, moveInDate, moveOutDate, limit, offset]);
+    `, [session.user.unitId, limit, offset]);
 
     return NextResponse.json({
       bills,
