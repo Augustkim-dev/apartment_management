@@ -21,6 +21,11 @@ interface UnitBill {
   unit_number: string;
 }
 
+interface UnpaidStats {
+  unpaid_count: number;
+  unpaid_total: number;
+}
+
 export default async function MyDashboard() {
   const session = await getRequiredSession();
 
@@ -59,6 +64,21 @@ export default async function MyDashboard() {
     LIMIT 6
   `, [session.user.unitId, moveInDate, moveOutDate]);
 
+  // 전체 미납 통계 조회 (최근 6개월이 아닌 전체 기간)
+  const unpaidStatsResult = await query<UnpaidStats[]>(`
+    SELECT
+      COUNT(*) as unpaid_count,
+      COALESCE(SUM(ub.total_amount), 0) as unpaid_total
+    FROM unit_bills ub
+    JOIN monthly_bills mb ON ub.monthly_bill_id = mb.id
+    WHERE ub.unit_id = ?
+    AND ub.payment_status != 'paid'
+    AND DATE(CONCAT(mb.bill_year, '-', LPAD(mb.bill_month, 2, '0'), '-01')) >= ?
+    AND DATE(CONCAT(mb.bill_year, '-', LPAD(mb.bill_month, 2, '0'), '-01')) <= ?
+  `, [session.user.unitId, moveInDate, moveOutDate]);
+
+  const unpaidStats = unpaidStatsResult[0] || { unpaid_count: 0, unpaid_total: 0 };
+
   // 현재 달 청구서
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
@@ -66,11 +86,9 @@ export default async function MyDashboard() {
     bill => bill.bill_year === currentYear && bill.bill_month === currentMonth
   );
 
-  // 통계
-  const unpaidCount = recentBills.filter(bill => bill.payment_status !== 'paid').length;
-  const totalUnpaid = recentBills
-    .filter(bill => bill.payment_status !== 'paid')
-    .reduce((sum, bill) => sum + (bill.total_amount || 0), 0);
+  // 전체 미납 통계 (전체 기간 기준)
+  const unpaidCount = Number(unpaidStats.unpaid_count) || 0;
+  const totalUnpaid = Number(unpaidStats.unpaid_total) || 0;
 
   return (
     <div>

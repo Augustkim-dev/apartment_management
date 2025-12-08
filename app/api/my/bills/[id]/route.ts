@@ -97,7 +97,7 @@ export async function GET(
 
       const prevBill = (prevBillRows as any[]).length > 0 ? (prevBillRows as any[])[0] : null;
 
-      // 3. 미납 내역 조회
+      // 3. 미납 내역 조회 (전체 기간)
       const [unpaidRows] = await connection.execute(`
         SELECT
           mb.bill_year,
@@ -109,7 +109,6 @@ export async function GET(
         AND ub.payment_status != 'paid'
         AND ub.id != ?
         ORDER BY mb.bill_year DESC, mb.bill_month DESC
-        LIMIT 12
       `, [session.user.unitId, unitBillId]);
 
       const unpaidDetails = (unpaidRows as any[]).map(row => ({
