@@ -50,7 +50,21 @@ export async function GET(request: NextRequest) {
       statusCondition = "AND ub.payment_status != 'paid'";
     }
 
-    // 1. 전체 요약 통계 조회 (해당 호실의 모든 청구서)
+    // 입주일 기준 필터링 조건 설정
+    const moveInDate = session.user.moveInDate ? new Date(session.user.moveInDate) : null;
+    const moveInYear = moveInDate?.getFullYear();
+    const moveInMonth = moveInDate ? moveInDate.getMonth() + 1 : null;
+
+    let dateFilter = '';
+    if (moveInYear && moveInMonth) {
+      dateFilter = 'AND (mb.bill_year > ? OR (mb.bill_year = ? AND mb.bill_month >= ?))';
+    }
+
+    // 1. 전체 요약 통계 조회 (입주일 이후 청구서만)
+    const summaryParams = moveInYear
+      ? [session.user.unitId, moveInYear, moveInYear, moveInMonth]
+      : [session.user.unitId];
+
     const summaryResult = await query<SummaryRow[]>(`
       SELECT
         COALESCE(SUM(ub.total_amount), 0) as total_amount,
@@ -60,8 +74,10 @@ export async function GET(request: NextRequest) {
         SUM(CASE WHEN ub.payment_status = 'paid' THEN 1 ELSE 0 END) as paid_count,
         SUM(CASE WHEN ub.payment_status != 'paid' THEN 1 ELSE 0 END) as unpaid_count
       FROM unit_bills ub
+      JOIN monthly_bills mb ON ub.monthly_bill_id = mb.id
       WHERE ub.unit_id = ?
-    `, [session.user.unitId]);
+      ${dateFilter}
+    `, summaryParams);
 
     const summary = summaryResult[0] || {
       total_amount: 0,
@@ -72,19 +88,29 @@ export async function GET(request: NextRequest) {
       unpaid_count: 0
     };
 
-    // 2. 필터된 결과의 총 개수 조회 (페이징용)
+    // 2. 필터된 결과의 총 개수 조회 (페이징용, 입주일 이후만)
+    const countParams = moveInYear
+      ? [session.user.unitId, moveInYear, moveInYear, moveInMonth]
+      : [session.user.unitId];
+
     const countResult = await query<{ count: number }[]>(`
       SELECT COUNT(*) as count
       FROM unit_bills ub
+      JOIN monthly_bills mb ON ub.monthly_bill_id = mb.id
       WHERE ub.unit_id = ?
+      ${dateFilter}
       ${statusCondition}
-    `, [session.user.unitId]);
+    `, countParams);
 
     const total = countResult[0]?.count || 0;
     const totalPages = Math.ceil(total / limit);
     const offset = (page - 1) * limit;
 
-    // 3. 청구서 목록 조회 (페이징 및 필터 적용)
+    // 3. 청구서 목록 조회 (페이징 및 필터 적용, 입주일 이후만)
+    const billsParams = moveInYear
+      ? [session.user.unitId, moveInYear, moveInYear, moveInMonth, limit, offset]
+      : [session.user.unitId, limit, offset];
+
     const bills = await query<UnitBill[]>(`
       SELECT
         ub.id,
@@ -102,10 +128,11 @@ export async function GET(request: NextRequest) {
       JOIN monthly_bills mb ON ub.monthly_bill_id = mb.id
       JOIN units u ON ub.unit_id = u.id
       WHERE ub.unit_id = ?
+      ${dateFilter}
       ${statusCondition}
       ORDER BY mb.bill_year DESC, mb.bill_month DESC
       LIMIT ? OFFSET ?
-    `, [session.user.unitId, limit, offset]);
+    `, billsParams);
 
     return NextResponse.json({
       bills,

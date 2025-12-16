@@ -97,7 +97,19 @@ export async function GET(
 
       const prevBill = (prevBillRows as any[]).length > 0 ? (prevBillRows as any[])[0] : null;
 
-      // 3. 미납 내역 조회 (전체 기간)
+      // 3. 미납 내역 조회 (입주일 이후만)
+      const moveInDate = session.user.moveInDate ? new Date(session.user.moveInDate) : null;
+      const moveInYear = moveInDate?.getFullYear();
+      const moveInMonth = moveInDate ? moveInDate.getMonth() + 1 : null;
+
+      let dateFilter = '';
+      let unpaidParams: any[] = [session.user.unitId, unitBillId];
+
+      if (moveInYear && moveInMonth) {
+        dateFilter = 'AND (mb.bill_year > ? OR (mb.bill_year = ? AND mb.bill_month >= ?))';
+        unpaidParams = [session.user.unitId, unitBillId, moveInYear, moveInYear, moveInMonth];
+      }
+
       const [unpaidRows] = await connection.execute(`
         SELECT
           mb.bill_year,
@@ -108,8 +120,9 @@ export async function GET(
         WHERE ub.unit_id = ?
         AND ub.payment_status != 'paid'
         AND ub.id != ?
+        ${dateFilter}
         ORDER BY mb.bill_year DESC, mb.bill_month DESC
-      `, [session.user.unitId, unitBillId]);
+      `, unpaidParams);
 
       const unpaidDetails = (unpaidRows as any[]).map(row => ({
         month: `${row.bill_year}년 ${row.bill_month}월`,

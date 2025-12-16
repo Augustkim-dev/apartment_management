@@ -40,7 +40,23 @@ export default async function MyDashboard() {
   // 납부 계좌 정보 조회
   const paymentConfig = await configService.getByCategory('payment');
 
-  // 해당 호실의 최근 청구서 조회 (moveInDate 필터 제거 - 모든 청구서 표시)
+  // 입주일 기준 필터링 조건 설정
+  const moveInDate = session.user.moveInDate ? new Date(session.user.moveInDate) : null;
+  const moveInYear = moveInDate?.getFullYear();
+  const moveInMonth = moveInDate ? moveInDate.getMonth() + 1 : null;
+
+  // 입주일 필터 조건 생성
+  let dateFilter = '';
+  let billParams: any[] = [session.user.unitId];
+  let unpaidParams: any[] = [session.user.unitId];
+
+  if (moveInYear && moveInMonth) {
+    dateFilter = 'AND (mb.bill_year > ? OR (mb.bill_year = ? AND mb.bill_month >= ?))';
+    billParams = [session.user.unitId, moveInYear, moveInYear, moveInMonth];
+    unpaidParams = [session.user.unitId, moveInYear, moveInYear, moveInMonth];
+  }
+
+  // 해당 호실의 최근 청구서 조회 (입주일 이후만)
   const recentBills = await query<UnitBill[]>(`
     SELECT
       ub.id,
@@ -55,19 +71,22 @@ export default async function MyDashboard() {
     JOIN monthly_bills mb ON ub.monthly_bill_id = mb.id
     JOIN units u ON ub.unit_id = u.id
     WHERE ub.unit_id = ?
+    ${dateFilter}
     ORDER BY mb.bill_year DESC, mb.bill_month DESC
     LIMIT 6
-  `, [session.user.unitId]);
+  `, billParams);
 
-  // 전체 미납 통계 조회 (해당 호실의 모든 미납 청구서)
+  // 미납 통계 조회 (입주일 이후만)
   const unpaidStatsResult = await query<UnpaidStats[]>(`
     SELECT
       COUNT(*) as unpaid_count,
       COALESCE(SUM(ub.total_amount), 0) as unpaid_total
     FROM unit_bills ub
+    JOIN monthly_bills mb ON ub.monthly_bill_id = mb.id
     WHERE ub.unit_id = ?
     AND ub.payment_status != 'paid'
-  `, [session.user.unitId]);
+    ${dateFilter}
+  `, unpaidParams);
 
   const unpaidStats = unpaidStatsResult[0] || { unpaid_count: 0, unpaid_total: 0 };
 
