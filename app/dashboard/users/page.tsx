@@ -19,6 +19,7 @@ interface User {
   phone: string;
   role: 'admin' | 'viewer';
   status: 'active' | 'inactive' | 'pending';
+  unit_id: number | null;
   unit_number: string | null;
   move_in_date: string | null;
   move_out_date: string | null;
@@ -57,8 +58,15 @@ export default function UsersPage() {
     }
   };
 
-  const handleDelete = async (userId: number, username: string) => {
-    if (!confirm(`${username} 사용자를 삭제하시겠습니까?`)) {
+  const handleDelete = async (userId: number, username: string, userStatus: string, unitNumber: string | null) => {
+    let confirmMessage = `${username} 사용자를 삭제하시겠습니까?`;
+
+    // active 상태이고 호실이 배정된 경우 경고 메시지 추가
+    if (userStatus === 'active' && unitNumber) {
+      confirmMessage = `삭제하게 되면 ${unitNumber}호실의 입주정보는 리셋됩니다.\n\n${username} 사용자를 삭제하시겠습니까?`;
+    }
+
+    if (!confirm(confirmMessage)) {
       return;
     }
 
@@ -218,7 +226,7 @@ export default function UsersPage() {
                   {user.role !== 'admin' && (
                     <button
                       className="text-red-600 hover:text-red-900"
-                      onClick={() => handleDelete(user.id, user.username)}
+                      onClick={() => handleDelete(user.id, user.username, user.status, user.unit_number)}
                     >
                       <TrashIcon className="h-5 w-5 inline" />
                     </button>

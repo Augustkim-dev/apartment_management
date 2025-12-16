@@ -109,6 +109,14 @@ export async function POST(request: NextRequest) {
       ]
     );
 
+    // 호실이 배정된 경우 units 테이블 동기화
+    if (unit_id) {
+      await execute(
+        "UPDATE units SET tenant_name = ?, contact = ?, status = 'occupied' WHERE id = ?",
+        [full_name, phone || null, unit_id]
+      );
+    }
+
     return NextResponse.json({
       success: true,
       userId: result.insertId,

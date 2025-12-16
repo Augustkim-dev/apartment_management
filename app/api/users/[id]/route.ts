@@ -140,13 +140,14 @@ export async function PUT(
 
       // units 테이블 동기화를 위해 먼저 현재 사용자 정보 조회
       const currentUser = await query(
-        "SELECT unit_id, full_name, phone, username FROM users WHERE id = ?",
+        "SELECT unit_id, full_name, phone, username, status FROM users WHERE id = ?",
         [userId]
       );
       const oldUnitId = currentUser[0]?.unit_id;
       const oldFullName = currentUser[0]?.full_name;
       const oldPhone = currentUser[0]?.phone;
       const oldUsername = currentUser[0]?.username;
+      const oldStatus = currentUser[0]?.status;
 
       let updateQuery = `
         UPDATE users SET
@@ -204,7 +205,14 @@ export async function PUT(
           );
         }
       }
-      // 케이스 2: 퇴거일이 없고 호실 변경이 있는 경우
+      // 케이스 2: 상태가 active에서 inactive로 변경된 경우 - 공실 처리
+      else if (oldStatus === 'active' && status === 'inactive' && oldUnitId) {
+        await execute(
+          "UPDATE units SET tenant_name = NULL, contact = NULL, status = 'vacant' WHERE id = ?",
+          [oldUnitId]
+        );
+      }
+      // 케이스 3: 퇴거일이 없고 호실 변경이 있는 경우
       else if (oldUnitId !== unit_id) {
         // 이전 호실이 있었다면 공실로 변경
         if (oldUnitId) {
@@ -222,7 +230,7 @@ export async function PUT(
           );
         }
       }
-      // 케이스 3: 퇴거일 없고, 호실 변경 없지만 사용자 정보가 변경된 경우
+      // 케이스 4: 퇴거일 없고, 호실 변경 없지만 사용자 정보가 변경된 경우
       else if (unit_id && !move_out_date) {
         // 이름이나 연락처가 변경되었을 때만 업데이트
         if (oldFullName !== full_name || oldPhone !== phone) {
@@ -265,9 +273,9 @@ export async function DELETE(
     const { id } = await params;
     const userId = parseInt(id);
 
-    // admin 계정은 삭제 불가
+    // admin 계정은 삭제 불가, unit_id도 함께 조회
     const users = await query(
-      "SELECT role FROM users WHERE id = ?",
+      "SELECT role, unit_id FROM users WHERE id = ?",
       [userId]
     );
 
@@ -285,7 +293,18 @@ export async function DELETE(
       );
     }
 
+    const unitId = users[0].unit_id;
+
+    // 유저 삭제
     await execute("DELETE FROM users WHERE id = ?", [userId]);
+
+    // 호실이 배정되어 있었다면 공실로 변경
+    if (unitId) {
+      await execute(
+        "UPDATE units SET tenant_name = NULL, contact = NULL, status = 'vacant' WHERE id = ?",
+        [unitId]
+      );
+    }
 
     return NextResponse.json({
       success: true,
