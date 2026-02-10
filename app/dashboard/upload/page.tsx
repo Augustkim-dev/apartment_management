@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { CloudArrowUpIcon, DocumentTextIcon, TableCellsIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { FileUpload } from '@/components/FileUpload';
+import Link from 'next/link';
 
 export default function UploadPage() {
   const router = useRouter();
@@ -145,6 +146,12 @@ export default function UploadPage() {
         <h1 className="text-2xl font-bold text-gray-900">데이터 업로드</h1>
         <p className="mt-1 text-sm text-gray-600">
           한전 청구서와 호실별 사용량 데이터를 업로드하여 청구서를 생성합니다
+        </p>
+        <p className="mt-2 text-sm text-blue-600">
+          파일 업로드가 안되나요?{' '}
+          <Link href="/dashboard/data-entry" className="font-medium underline hover:text-blue-800">
+            수동으로 입력하기
+          </Link>
         </p>
       </div>
 

@@ -16,6 +16,7 @@ import {
   XMarkIcon,
   UserGroupIcon,
   BanknotesIcon,
+  PencilSquareIcon,
 } from '@heroicons/react/24/outline';
 
 const navigation = [
@@ -25,6 +26,7 @@ const navigation = [
   { name: '호실 관리', href: '/dashboard/units', icon: BuildingOfficeIcon },
   { name: '유저 관리', href: '/dashboard/users', icon: UserGroupIcon },
   { name: '데이터 업로드', href: '/dashboard/upload', icon: ArrowUpTrayIcon },
+  { name: '수동 데이터 입력', href: '/dashboard/data-entry', icon: PencilSquareIcon },
   { name: '통계', href: '/dashboard/stats', icon: ChartBarIcon },
   { name: '설정', href: '/dashboard/settings', icon: Cog6ToothIcon },
 ];
