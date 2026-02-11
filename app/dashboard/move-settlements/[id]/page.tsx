@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import {
   ArrowLeftIcon,
   ArrowsRightLeftIcon,
+  ArrowUturnLeftIcon,
   UserPlusIcon,
 } from '@heroicons/react/24/outline';
 
@@ -160,6 +161,41 @@ export default function MoveSettlementDetailPage() {
     }
   };
 
+  const handleRollback = async () => {
+    const confirmed = confirm(
+      '이사 정산을 롤백하시겠습니까?\n\n' +
+      '다음 작업이 수행됩니다:\n' +
+      '- 퇴거자 청구서(move_out) 삭제\n' +
+      '- 입주자 청구서(move_in) 삭제\n' +
+      '- 퇴거자를 다시 현재 입주자로 복원\n' +
+      '- 입주자 정보 삭제\n\n' +
+      '이 작업은 되돌릴 수 없습니다.'
+    );
+    if (!confirmed) return;
+
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/move-settlements/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'rollback' }),
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        toast.error(data.message);
+        return;
+      }
+
+      toast.success(data.message);
+      fetchDetail();
+    } catch {
+      toast.error('롤백 요청에 실패했습니다.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '-';
     const d = new Date(dateStr);
@@ -216,19 +252,31 @@ export default function MoveSettlementDetailPage() {
           </span>
         </div>
 
-        {detail.status === 'pending' && (
+        {detail.status !== 'cancelled' && (
           <div className="flex gap-2">
+            {detail.status === 'pending' && (
+              <>
+                <button
+                  onClick={() => handleStatusChange('completed')}
+                  className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+                >
+                  완료 처리
+                </button>
+                <button
+                  onClick={() => handleStatusChange('cancelled')}
+                  className="rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
+                >
+                  취소
+                </button>
+              </>
+            )}
             <button
-              onClick={() => handleStatusChange('completed')}
-              className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+              onClick={handleRollback}
+              disabled={submitting}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-4 py-2 text-sm font-medium text-red-700 ring-1 ring-inset ring-red-200 hover:bg-red-100 disabled:opacity-50"
             >
-              완료 처리
-            </button>
-            <button
-              onClick={() => handleStatusChange('cancelled')}
-              className="rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
-            >
-              취소
+              <ArrowUturnLeftIcon className="h-4 w-4" />
+              롤백
             </button>
           </div>
         )}

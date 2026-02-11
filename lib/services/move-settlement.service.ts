@@ -514,7 +514,7 @@ export class MoveSettlementService {
   }
 
   /**
-   * 이사 정산 상태 변경 (취소 등)
+   * 이사 정산 상태 변경 (완료 등)
    */
   async updateSettlementStatus(
     id: number,
@@ -536,6 +536,159 @@ export class MoveSettlementService {
         : '이사 정산이 완료 처리되었습니다.',
       settlementId: id,
     };
+  }
+
+  /**
+   * 이사 정산 롤백 (되돌리기)
+   *
+   * 정산 생성 시 수행된 모든 변경을 역순으로 되돌립니다:
+   * 1. unit_bills에서 move_out, move_in 청구서 삭제
+   * 2. 퇴거 tenant → active로 복원
+   * 3. 입주 tenant 삭제 (정산으로 생성된 경우)
+   * 4. units 테이블에 원래 퇴거자 정보 복원
+   * 5. move_settlements status → cancelled
+   */
+  async rollbackSettlement(id: number): Promise<MoveSettlementResponse> {
+    // 1. 정산 조회
+    const settlements = await query<RowDataPacket[]>(
+      `SELECT ms.*, u.unit_number
+       FROM move_settlements ms
+       JOIN units u ON ms.unit_id = u.id
+       WHERE ms.id = ?`,
+      [id]
+    );
+
+    if (settlements.length === 0) {
+      return { success: false, message: '이사 정산을 찾을 수 없습니다.' };
+    }
+
+    const settlement = settlements[0];
+
+    if (settlement.status === 'cancelled') {
+      return { success: false, message: '이미 취소된 정산입니다.' };
+    }
+
+    // 2. 퇴거자 청구서의 납부 상태 확인
+    const paidBills = await query<RowDataPacket[]>(
+      `SELECT id, payment_status FROM unit_bills
+       WHERE move_settlement_id = ? AND payment_status = 'paid'`,
+      [id]
+    );
+
+    if (paidBills.length > 0) {
+      return {
+        success: false,
+        message: '이미 납부 완료된 청구서가 있어 롤백할 수 없습니다. 먼저 납부 상태를 변경해주세요.',
+      };
+    }
+
+    // 3. 퇴거 tenant 정보 조회
+    const outgoingTenantId = settlement.outgoing_tenant_id;
+    const outgoingTenants = await query<RowDataPacket[]>(
+      `SELECT * FROM tenants WHERE id = ?`,
+      [outgoingTenantId]
+    );
+
+    if (outgoingTenants.length === 0) {
+      return { success: false, message: '퇴거자 정보를 찾을 수 없습니다.' };
+    }
+
+    const outgoingTenant = outgoingTenants[0];
+    const unitId = settlement.unit_id;
+    const incomingTenantId = settlement.incoming_tenant_id;
+
+    // 4. 트랜잭션으로 롤백 실행
+    return await transaction(async (conn) => {
+      // 4-a. unit_bills에서 이 정산과 관련된 모든 청구서 삭제
+      //      (move_out 청구서 + 재계산으로 생성된 move_in 청구서)
+      await conn.execute(
+        `DELETE FROM unit_bills WHERE move_settlement_id = ?`,
+        [id]
+      );
+
+      // move_in 청구서가 move_settlement_id 없이 생성된 경우도 처리
+      // (입주 tenant_id + bill_type='move_in'으로 조회)
+      if (incomingTenantId) {
+        await conn.execute(
+          `DELETE FROM unit_bills
+           WHERE unit_id = ? AND tenant_id = ? AND bill_type = 'move_in'`,
+          [unitId, incomingTenantId]
+        );
+      }
+
+      // 4-b. 퇴거 tenant를 active로 복원
+      await conn.execute(
+        `UPDATE tenants SET
+          status = 'active',
+          move_out_date = NULL,
+          move_out_reading = NULL,
+          updated_at = NOW()
+        WHERE id = ?`,
+        [outgoingTenantId]
+      );
+
+      // 4-c. 입주 tenant 삭제 (있는 경우)
+      if (incomingTenantId) {
+        // 입주자에게 다른 청구서가 있는지 확인 (안전장치)
+        const otherBills = await conn.execute<RowDataPacket[]>(
+          `SELECT COUNT(*) as cnt FROM unit_bills WHERE tenant_id = ?`,
+          [incomingTenantId]
+        );
+        const billCount = (otherBills as any)[0][0]?.cnt || 0;
+
+        if (billCount === 0) {
+          // 다른 청구서가 없으면 삭제 가능
+          await conn.execute(
+            `DELETE FROM tenants WHERE id = ?`,
+            [incomingTenantId]
+          );
+        } else {
+          // 다른 청구서가 있으면 삭제하지 않고 상태만 변경
+          await conn.execute(
+            `UPDATE tenants SET
+              status = 'moved_out',
+              notes = CONCAT(COALESCE(notes, ''), '\n[롤백] 정산 #${id} 롤백으로 인한 상태 변경'),
+              updated_at = NOW()
+            WHERE id = ?`,
+            [incomingTenantId]
+          );
+        }
+      }
+
+      // 4-d. units 테이블에 퇴거자 정보 복원
+      await conn.execute(
+        `UPDATE units SET
+          tenant_name = ?,
+          contact = ?,
+          email = ?,
+          status = 'occupied',
+          move_out_date = NULL,
+          updated_at = NOW()
+        WHERE id = ?`,
+        [
+          outgoingTenant.name,
+          outgoingTenant.contact,
+          outgoingTenant.email,
+          unitId,
+        ]
+      );
+
+      // 4-e. move_settlements 상태를 cancelled로 변경
+      await conn.execute(
+        `UPDATE move_settlements SET
+          status = 'cancelled',
+          notes = CONCAT(COALESCE(notes, ''), '\n[롤백] ', NOW(), ' 정산이 롤백되었습니다.'),
+          updated_at = NOW()
+        WHERE id = ?`,
+        [id]
+      );
+
+      return {
+        success: true,
+        message: `${settlement.unit_number}호 이사 정산이 롤백되었습니다. 퇴거자(${outgoingTenant.name})가 다시 active 상태로 복원되었습니다.`,
+        settlementId: id,
+      };
+    });
   }
 
   // ============================================

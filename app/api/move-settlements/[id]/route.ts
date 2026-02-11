@@ -83,6 +83,15 @@ export async function PATCH(
       return NextResponse.json(result);
     }
 
+    // 롤백 (되돌리기)
+    if (body.action === 'rollback') {
+      const result = await moveSettlementService.rollbackSettlement(settlementId);
+      if (!result.success) {
+        return NextResponse.json(result, { status: 400 });
+      }
+      return NextResponse.json(result);
+    }
+
     return NextResponse.json(
       { success: false, message: '유효하지 않은 action입니다.' },
       { status: 400 }
