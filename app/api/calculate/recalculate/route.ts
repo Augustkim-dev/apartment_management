@@ -35,7 +35,8 @@ export async function POST(request: NextRequest) {
 
     // Step 2: 최신 parsed_pdf_data 조회
     const monthStr = String(month);
-    const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+    const monthPadded = String(month).padStart(2, '0');
+    const startDate = `${year}-${monthPadded}-01`;
     const endDate = new Date(Number(year), Number(month), 0)
       .toISOString().split('T')[0];
 
@@ -47,22 +48,22 @@ export async function POST(request: NextRequest) {
       [startDate, endDate]
     );
 
-    // fallback: file_name 패턴 매칭
+    // fallback: file_name 패턴 매칭 (leading zero 포함/미포함 모두 검색)
     if (pdfResults.length === 0) {
       pdfResults = await query<RowDataPacket[]>(
         `SELECT * FROM parsed_pdf_data
-         WHERE file_name LIKE ? OR file_name LIKE ?
+         WHERE file_name LIKE ? OR file_name LIKE ? OR file_name LIKE ? OR file_name LIKE ?
          ORDER BY parsed_at DESC LIMIT 1`,
-        [`%${year}.${monthStr}월%`, `%${year}년_${monthStr}월%`]
+        [`%${year}.${monthStr}월%`, `%${year}.${monthPadded}월%`, `%${year}년_${monthStr}월%`, `%${year}년_${monthPadded}월%`]
       );
     }
 
-    // Step 3: 최신 parsed_excel_data 조회
+    // Step 3: 최신 parsed_excel_data 조회 (leading zero 포함/미포함 모두 검색)
     const excelResults = await query<RowDataPacket[]>(
       `SELECT * FROM parsed_excel_data
-       WHERE file_name LIKE ? OR file_name LIKE ?
+       WHERE file_name LIKE ? OR file_name LIKE ? OR file_name LIKE ? OR file_name LIKE ?
        ORDER BY parsed_at DESC LIMIT 1`,
-      [`%${year}.${monthStr}월%`, `%${year}년_${monthStr}월%`]
+      [`%${year}.${monthStr}월%`, `%${year}.${monthPadded}월%`, `%${year}년_${monthStr}월%`, `%${year}년_${monthPadded}월%`]
     );
 
     // Step 4: 데이터 존재 여부 검증

@@ -16,14 +16,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // file_name에서 연월 매칭 (e.g., "2025.7월" 또는 "수동입력_2025년_7월")
+    // file_name에서 연월 매칭 (e.g., "2025.7월", "2026.01월", "수동입력_2025년_7월")
     const monthStr = String(month);
+    const monthPadded = String(month).padStart(2, '0');
     const results = await query<RowDataPacket[]>(
       `SELECT * FROM parsed_excel_data
-       WHERE file_name LIKE ? OR file_name LIKE ?
+       WHERE file_name LIKE ? OR file_name LIKE ? OR file_name LIKE ? OR file_name LIKE ?
        ORDER BY parsed_at DESC
        LIMIT 1`,
-      [`%${year}.${monthStr}월%`, `%${year}년_${monthStr}월%`]
+      [`%${year}.${monthStr}월%`, `%${year}.${monthPadded}월%`, `%${year}년_${monthStr}월%`, `%${year}년_${monthPadded}월%`]
     );
 
     if (results.length === 0) {

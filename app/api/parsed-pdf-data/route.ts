@@ -16,17 +16,30 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+    const monthStr = String(month);
+    const monthPadded = String(month).padStart(2, '0');
+    const startDate = `${year}-${monthPadded}-01`;
     const endDate = new Date(Number(year), Number(month), 0)
       .toISOString().split('T')[0];
 
-    const results = await query<RowDataPacket[]>(
+    let results = await query<RowDataPacket[]>(
       `SELECT * FROM parsed_pdf_data
        WHERE billing_period_start >= ? AND billing_period_end <= ?
        ORDER BY parsed_at DESC
        LIMIT 1`,
       [startDate, endDate]
     );
+
+    // fallback: file_name 패턴 매칭 (leading zero 포함/미포함)
+    if (results.length === 0) {
+      results = await query<RowDataPacket[]>(
+        `SELECT * FROM parsed_pdf_data
+         WHERE file_name LIKE ? OR file_name LIKE ? OR file_name LIKE ? OR file_name LIKE ?
+         ORDER BY parsed_at DESC
+         LIMIT 1`,
+        [`%${year}.${monthStr}월%`, `%${year}.${monthPadded}월%`, `%${year}년_${monthStr}월%`, `%${year}년_${monthPadded}월%`]
+      );
+    }
 
     if (results.length === 0) {
       return NextResponse.json({ success: true, data: null });
