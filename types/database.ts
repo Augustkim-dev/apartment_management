@@ -1,5 +1,5 @@
 // Database Types Definition
-// Updated: 2025-09-16
+// Updated: 2026-02-11
 
 // 사용자 정보
 export interface User {
@@ -80,11 +80,69 @@ export interface MonthlyBill {
   updatedAt: Date;
 }
 
+// 입주자 정보 (009 추가)
+export interface Tenant {
+  id: number;
+  unitId: number;
+  name: string;
+  contact: string | null;
+  email: string | null;
+  status: 'active' | 'moved_out';
+  moveInDate: Date;
+  moveOutDate: Date | null;
+  moveInReading: number | null;
+  moveOutReading: number | null;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// 이사 정산 (009 추가)
+export interface MoveSettlement {
+  id: number;
+  unitId: number;
+  settlementDate: Date;
+  billYear: number;
+  billMonth: number;
+
+  // 퇴거자 정보
+  outgoingTenantId: number;
+  outgoingPeriodStart: Date;
+  outgoingPeriodEnd: Date;
+  outgoingMeterReading: number | null;
+  outgoingUsage: number | null;
+
+  // 입주자 정보
+  incomingTenantId: number | null;
+  incomingPeriodStart: Date | null;
+  incomingMeterReading: number | null;
+
+  // 추정 기준 데이터
+  estimatedTotalUsage: number | null;
+  estimatedTotalAmount: number | null;
+  estimationBaseMonths: string | null;  // JSON
+
+  status: 'pending' | 'completed' | 'cancelled';
+  notes: string | null;
+  createdBy: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // 호실별 청구서
 export interface UnitBill {
   id: number;
   monthlyBillId: number;
   unitId: number;
+
+  // 이사 정산 관련 (009 추가)
+  tenantId: number | null;
+  tenantNameSnapshot: string | null;
+  billType: 'regular' | 'move_out' | 'move_in';
+  moveSettlementId: number | null;
+  billingPeriodStart: Date | null;
+  billingPeriodEnd: Date | null;
+  isEstimated: boolean;
 
   // 검침 정보
   previousReading: number | null;

@@ -60,6 +60,10 @@ interface UnitBill {
   unpaidAmount?: number;  // 미납금액
   paymentStatus: 'pending' | 'paid' | 'overdue';
   paymentDate: string | null;
+  // 이사 정산 관련
+  billType?: 'regular' | 'move_out' | 'move_in';
+  isEstimated?: boolean;
+  tenantNameSnapshot?: string | null;
 }
 
 export default function BillDetailPage() {
@@ -744,6 +748,15 @@ export default function BillDetailPage() {
                     <td className="px-6 py-4 whitespace-nowrap cursor-pointer" onClick={() => toggleRowExpansion(unit.id)}>
                       <div className="flex items-center">
                         <span className="text-sm font-medium text-gray-900">{unit.unitNumber}</span>
+                        {unit.billType === 'move_out' && (
+                          <span className="ml-1 rounded bg-orange-100 px-1.5 py-0.5 text-xs font-semibold text-orange-700">퇴거</span>
+                        )}
+                        {unit.billType === 'move_in' && (
+                          <span className="ml-1 rounded bg-blue-100 px-1.5 py-0.5 text-xs font-semibold text-blue-700">입주</span>
+                        )}
+                        {unit.isEstimated && (
+                          <span className="ml-1 rounded bg-yellow-100 px-1.5 py-0.5 text-xs font-semibold text-yellow-700">추정</span>
+                        )}
                         <button className="ml-2">
                           {expandedRows.has(unit.id) ? (
                             <ChevronUpIcon className="h-4 w-4 text-gray-400" />

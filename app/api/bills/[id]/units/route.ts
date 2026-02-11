@@ -32,13 +32,13 @@ export async function GET(
   try {
     const { id: billId } = await params;
 
-    // 호실별 청구서 조회
+    // 호실별 청구서 조회 (이사정산 지원)
     const unitBills = await query<UnitBillData[]>(`
       SELECT
         ub.id,
         ub.unit_id,
         u.unit_number,
-        u.tenant_name,
+        COALESCE(ub.tenant_name_snapshot, u.tenant_name) AS tenant_name,
         u.contact,
         ub.previous_reading,
         ub.current_reading,
@@ -54,11 +54,14 @@ export async function GET(
         ub.round_down,
         ub.total_amount,
         ub.payment_status,
-        ub.payment_date
+        ub.payment_date,
+        ub.bill_type,
+        ub.is_estimated,
+        ub.tenant_name_snapshot
       FROM unit_bills ub
       INNER JOIN units u ON ub.unit_id = u.id
       WHERE ub.monthly_bill_id = ?
-      ORDER BY u.unit_number
+      ORDER BY u.unit_number, ub.bill_type
     `, [billId]);
 
     if (unitBills.length === 0) {
@@ -123,6 +126,10 @@ export async function GET(
       totalAmount: bill.total_amount || 0,
       paymentStatus: bill.payment_status || 'pending',
       paymentDate: bill.payment_date,
+      // 이사 정산 관련 필드
+      billType: bill.bill_type || 'regular',
+      isEstimated: !!bill.is_estimated,
+      tenantNameSnapshot: bill.tenant_name_snapshot || null,
     }));
 
     return NextResponse.json(formattedBills);

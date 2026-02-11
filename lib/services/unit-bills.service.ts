@@ -22,26 +22,57 @@ export class UnitBillsService {
   ) {
     return await transaction(async (conn) => {
       // 기존 데이터 삭제 (재계산 시)
+      // 이사정산 청구서(move_out)는 보호하고 regular, move_in만 삭제
       await conn.execute(
-        'DELETE FROM unit_bills WHERE monthly_bill_id = ?',
+        "DELETE FROM unit_bills WHERE monthly_bill_id = ? AND bill_type IN ('regular', 'move_in')",
         [monthlyBillId]
       );
 
-      // monthly_bills에서 due_date 조회
+      // 이사 정산 호실 조회 (해당 월에 move_settlements가 있는 호실)
+      const [monthlyBillInfo] = await conn.execute<RowDataPacket[]>(
+        'SELECT bill_year, bill_month FROM monthly_bills WHERE id = ?',
+        [monthlyBillId]
+      );
+      const billYear = monthlyBillInfo.length > 0 ? monthlyBillInfo[0].bill_year : null;
+      const billMonth = monthlyBillInfo.length > 0 ? monthlyBillInfo[0].bill_month : null;
+
+      // 이사 정산이 있는 호실 목록 (unitId → settlement 정보)
+      const moveSettlementUnits = new Map<number, RowDataPacket>();
+      if (billYear && billMonth) {
+        const [settlements] = await conn.execute<RowDataPacket[]>(
+          `SELECT ms.*, it.name AS incoming_tenant_name
+           FROM move_settlements ms
+           LEFT JOIN tenants it ON ms.incoming_tenant_id = it.id
+           WHERE ms.bill_year = ? AND ms.bill_month = ?
+             AND ms.status != 'cancelled'`,
+          [billYear, billMonth]
+        );
+        for (const s of settlements) {
+          moveSettlementUnits.set(s.unit_id, s);
+        }
+      }
+
+      // monthly_bills에서 due_date 및 건물 전체 요금 데이터 조회
       const [monthlyBills] = await conn.execute<RowDataPacket[]>(
-        'SELECT due_date FROM monthly_bills WHERE id = ?',
+        `SELECT due_date, total_usage, basic_fee, power_fee, climate_fee,
+                fuel_fee, power_factor_fee, vat, power_fund
+         FROM monthly_bills WHERE id = ?`,
         [monthlyBillId]
       );
 
       const dueDate = monthlyBills.length > 0 ? monthlyBills[0].due_date : null;
+      const buildingData = monthlyBills.length > 0 ? monthlyBills[0] : null;
 
       // 각 호실별 청구서 저장
       const savedBills = [];
 
       for (const unitBill of calculationResult.unitBills) {
-        // units 테이블에서 unit_id 조회
+        // units 테이블에서 unit_id + active tenant 조회
         const [units] = await conn.execute<RowDataPacket[]>(
-          'SELECT id FROM units WHERE unit_number = ?',
+          `SELECT u.id, t.id AS tenant_id, t.name AS tenant_name
+           FROM units u
+           LEFT JOIN tenants t ON t.unit_id = u.id AND t.status = 'active'
+           WHERE u.unit_number = ?`,
           [unitBill.unitNumber]
         );
 
@@ -51,44 +82,123 @@ export class UnitBillsService {
         }
 
         const unitId = units[0].id;
+        const tenantId = units[0].tenant_id || null;
+        const tenantName = units[0].tenant_name || null;
 
-        // unit_bills 테이블에 삽입
-        const [result] = await conn.execute<ResultSetHeader>(
-          `INSERT INTO unit_bills (
-            monthly_bill_id, unit_id,
-            previous_reading, current_reading,
-            usage_amount, usage_rate,
-            basic_fee, power_fee, climate_fee, fuel_fee,
-            vat, power_fund, tv_license_fee, round_down,
-            total_amount, payment_status, due_date, notes
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            monthlyBillId,
-            unitId,
-            unitBill.previousReading || null,
-            unitBill.currentReading || null,
-            unitBill.usage,
-            unitBill.usageRatio,
-            unitBill.basicFee,
-            unitBill.powerFee,
-            unitBill.climateFee,
-            unitBill.fuelFee,
-            unitBill.vat,
-            unitBill.powerFund,
-            0, // tv_license_fee (현재 계산에 포함되지 않음)
-            0, // round_down (원단위절사는 전체에만 적용)
-            unitBill.totalAmount,
-            'pending',
-            dueDate,
-            options?.notes || null
-          ]
-        );
+        // 이사 정산 호실 체크
+        const settlement = moveSettlementUnits.get(unitId);
 
-        savedBills.push({
-          unitBillId: result.insertId,
-          unitNumber: unitBill.unitNumber,
-          totalAmount: unitBill.totalAmount
-        });
+        if (settlement) {
+          // 이사 정산 호실: move_in 청구서 생성
+          // 입주자 사용량 = 전체 사용량 - 퇴거자 사용량
+          const outgoingUsage = parseFloat(settlement.outgoing_usage) || 0;
+          const moveInUsage = unitBill.usage - outgoingUsage;
+
+          // 건물 전체 사용량 기준 입주자 비율 (monthly_bills 실제 데이터 사용)
+          const bldgTotalUsage = buildingData ? (parseFloat(buildingData.total_usage) || 1) : 1;
+          const moveInRatio = moveInUsage / bldgTotalUsage;
+
+          // 각 요금항목 비례 계산 (10원 단위 반올림) - recalculateFees() 패턴 동일
+          const moveInBasicFee = Math.round(((parseFloat(buildingData?.basic_fee) || 0) * moveInRatio) / 10) * 10;
+          const moveInPowerFee = Math.round(((parseFloat(buildingData?.power_fee) || 0) * moveInRatio) / 10) * 10;
+          const moveInClimateFee = Math.round(((parseFloat(buildingData?.climate_fee) || 0) * moveInRatio) / 10) * 10;
+          const moveInFuelFee = Math.round(((parseFloat(buildingData?.fuel_fee) || 0) * moveInRatio) / 10) * 10;
+          const moveInPowerFactorFee = Math.round(((parseFloat(buildingData?.power_factor_fee) || 0) * moveInRatio) / 10) * 10;
+          const moveInVat = Math.round(((parseFloat(buildingData?.vat) || 0) * moveInRatio) / 10) * 10;
+          const moveInPowerFund = Math.round(((parseFloat(buildingData?.power_fund) || 0) * moveInRatio) / 10) * 10;
+          const moveInTotal = moveInBasicFee + moveInPowerFee + moveInClimateFee + moveInFuelFee + moveInPowerFactorFee + moveInVat + moveInPowerFund;
+
+          const incomingTenantId = settlement.incoming_tenant_id || null;
+          const incomingTenantName = settlement.incoming_tenant_name || null;
+
+          const [result] = await conn.execute<ResultSetHeader>(
+            `INSERT INTO unit_bills (
+              monthly_bill_id, unit_id,
+              tenant_id, tenant_name_snapshot,
+              bill_type, move_settlement_id,
+              billing_period_start, billing_period_end,
+              is_estimated,
+              previous_reading, current_reading,
+              usage_amount, usage_rate,
+              basic_fee, power_fee, climate_fee, fuel_fee,
+              power_factor_fee, vat, power_fund,
+              tv_license_fee, round_down,
+              total_amount, unpaid_amount,
+              payment_status, due_date, notes
+            ) VALUES (?, ?, ?, ?, 'move_in', ?, ?, ?, FALSE, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, 0, 'pending', ?, ?)`,
+            [
+              monthlyBillId,
+              unitId,
+              incomingTenantId,
+              incomingTenantName,
+              settlement.id,
+              settlement.incoming_period_start || settlement.outgoing_period_end,
+              null, // billing_period_end는 월말 검침시 확정
+              settlement.incoming_meter_reading || unitBill.previousReading || null,
+              unitBill.currentReading || null,
+              moveInUsage,
+              moveInRatio,
+              moveInBasicFee,
+              moveInPowerFee,
+              moveInClimateFee,
+              moveInFuelFee,
+              moveInPowerFactorFee,
+              moveInVat,
+              moveInPowerFund,
+              moveInTotal,
+              dueDate,
+              options?.notes || null,
+            ]
+          );
+
+          savedBills.push({
+            unitBillId: result.insertId,
+            unitNumber: unitBill.unitNumber,
+            totalAmount: moveInTotal,
+          });
+        } else {
+          // 일반 호실: regular 청구서 생성 (기존 로직)
+          const [result] = await conn.execute<ResultSetHeader>(
+            `INSERT INTO unit_bills (
+              monthly_bill_id, unit_id,
+              tenant_id, tenant_name_snapshot,
+              bill_type,
+              previous_reading, current_reading,
+              usage_amount, usage_rate,
+              basic_fee, power_fee, climate_fee, fuel_fee,
+              vat, power_fund, tv_license_fee, round_down,
+              total_amount, unpaid_amount,
+              payment_status, due_date, notes
+            ) VALUES (?, ?, ?, ?, 'regular', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'pending', ?, ?)`,
+            [
+              monthlyBillId,
+              unitId,
+              tenantId,
+              tenantName,
+              unitBill.previousReading || null,
+              unitBill.currentReading || null,
+              unitBill.usage,
+              unitBill.usageRatio,
+              unitBill.basicFee,
+              unitBill.powerFee,
+              unitBill.climateFee,
+              unitBill.fuelFee,
+              unitBill.vat,
+              unitBill.powerFund,
+              0, // tv_license_fee (현재 계산에 포함되지 않음)
+              0, // round_down (원단위절사는 전체에만 적용)
+              unitBill.totalAmount,
+              dueDate,
+              options?.notes || null,
+            ]
+          );
+
+          savedBills.push({
+            unitBillId: result.insertId,
+            unitNumber: unitBill.unitNumber,
+            totalAmount: unitBill.totalAmount,
+          });
+        }
       }
 
       return {
@@ -108,13 +218,13 @@ export class UnitBillsService {
       `SELECT
         ub.*,
         u.unit_number,
-        u.tenant_name,
+        COALESCE(ub.tenant_name_snapshot, u.tenant_name) AS tenant_name,
         u.contact,
         u.email
       FROM unit_bills ub
       JOIN units u ON ub.unit_id = u.id
       WHERE ub.monthly_bill_id = ?
-      ORDER BY u.unit_number`,
+      ORDER BY u.unit_number, ub.bill_type`,
       [monthlyBillId]
     );
 
