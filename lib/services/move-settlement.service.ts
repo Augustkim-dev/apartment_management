@@ -600,7 +600,7 @@ export class MoveSettlementService {
     // 4. 트랜잭션으로 롤백 실행
     return await transaction(async (conn) => {
       // 4-a. unit_bills에서 이 정산과 관련된 모든 청구서 삭제
-      //      (move_out 청구서 + 재계산으로 생성된 move_in 청구서)
+      //      (move_out 청구서 + move_settlement_id로 연결된 청구서)
       await conn.execute(
         `DELETE FROM unit_bills WHERE move_settlement_id = ?`,
         [id]
@@ -616,7 +616,21 @@ export class MoveSettlementService {
         );
       }
 
-      // 4-b. 퇴거 tenant를 active로 복원
+      // 4-b. move_settlements에서 incoming_tenant_id FK 해제 + 상태 변경
+      //      (입주 tenant 삭제 전에 FK를 먼저 해제해야 함)
+      await conn.execute(
+        `UPDATE move_settlements SET
+          incoming_tenant_id = NULL,
+          incoming_period_start = NULL,
+          incoming_meter_reading = NULL,
+          status = 'cancelled',
+          notes = CONCAT(COALESCE(notes, ''), '\n[롤백] ', NOW(), ' 정산이 롤백되었습니다.'),
+          updated_at = NOW()
+        WHERE id = ?`,
+        [id]
+      );
+
+      // 4-c. 퇴거 tenant를 active로 복원
       await conn.execute(
         `UPDATE tenants SET
           status = 'active',
@@ -627,14 +641,14 @@ export class MoveSettlementService {
         [outgoingTenantId]
       );
 
-      // 4-c. 입주 tenant 삭제 (있는 경우)
+      // 4-d. 입주 tenant 삭제 (있는 경우)
       if (incomingTenantId) {
         // 입주자에게 다른 청구서가 있는지 확인 (안전장치)
-        const otherBills = await conn.execute<RowDataPacket[]>(
+        const [countRows] = await conn.execute<RowDataPacket[]>(
           `SELECT COUNT(*) as cnt FROM unit_bills WHERE tenant_id = ?`,
           [incomingTenantId]
         );
-        const billCount = (otherBills as any)[0][0]?.cnt || 0;
+        const billCount = (countRows as any)[0]?.cnt || 0;
 
         if (billCount === 0) {
           // 다른 청구서가 없으면 삭제 가능
@@ -647,7 +661,7 @@ export class MoveSettlementService {
           await conn.execute(
             `UPDATE tenants SET
               status = 'moved_out',
-              notes = CONCAT(COALESCE(notes, ''), '\n[롤백] 정산 #${id} 롤백으로 인한 상태 변경'),
+              notes = CONCAT(COALESCE(notes, ''), '\n[롤백] 정산 롤백으로 인한 상태 변경'),
               updated_at = NOW()
             WHERE id = ?`,
             [incomingTenantId]
@@ -655,7 +669,7 @@ export class MoveSettlementService {
         }
       }
 
-      // 4-d. units 테이블에 퇴거자 정보 복원
+      // 4-e. units 테이블에 퇴거자 정보 복원
       await conn.execute(
         `UPDATE units SET
           tenant_name = ?,
@@ -671,16 +685,6 @@ export class MoveSettlementService {
           outgoingTenant.email,
           unitId,
         ]
-      );
-
-      // 4-e. move_settlements 상태를 cancelled로 변경
-      await conn.execute(
-        `UPDATE move_settlements SET
-          status = 'cancelled',
-          notes = CONCAT(COALESCE(notes, ''), '\n[롤백] ', NOW(), ' 정산이 롤백되었습니다.'),
-          updated_at = NOW()
-        WHERE id = ?`,
-        [id]
       );
 
       return {
