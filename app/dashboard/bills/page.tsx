@@ -80,7 +80,7 @@ export default function BillsPage() {
   };
 
   const handleRecalculate = async (billId: number) => {
-    if (!confirm('청구서를 재계산하시겠습니까?')) return;
+    if (!confirm('청구서를 재계산하시겠습니까? 기존 호실별 청구 데이터가 새로 계산됩니다.')) return;
 
     try {
       const response = await fetch('/api/calculate/recalculate', {
@@ -89,11 +89,29 @@ export default function BillsPage() {
         body: JSON.stringify({ billId }),
       });
 
-      if (response.ok) {
-        toast.success('재계산이 완료되었습니다.');
+      const result = await response.json();
+      if (result.success) {
+        toast.success(`재계산 완료: ${result.unitBillCount}개 호실, 총 ${result.totalAmount?.toLocaleString()}원`);
         fetchBills();
+      } else if (result.hasPaidBills) {
+        if (confirm(`이미 납부 완료된 호실이 ${result.paidCount}개 있습니다. 그래도 재계산하시겠습니까? 납부 상태가 초기화됩니다.`)) {
+          const forceResponse = await fetch('/api/calculate/recalculate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ billId, force: true }),
+          });
+          const forceResult = await forceResponse.json();
+          if (forceResult.success) {
+            toast.success(`재계산 완료: ${forceResult.unitBillCount}개 호실, 총 ${forceResult.totalAmount?.toLocaleString()}원`);
+            fetchBills();
+          } else {
+            toast.error(forceResult.message || '재계산 중 오류가 발생했습니다.');
+          }
+        }
+      } else if (result.missingData) {
+        toast.error(result.message);
       } else {
-        toast.error('재계산 중 오류가 발생했습니다.');
+        toast.error(result.message || '재계산 중 오류가 발생했습니다.');
       }
     } catch (error) {
       toast.error('재계산 중 오류가 발생했습니다.');

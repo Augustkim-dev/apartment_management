@@ -8,6 +8,7 @@ import {
   MagnifyingGlassIcon,
   PencilSquareIcon,
   ArrowPathIcon,
+  CalculatorIcon,
 } from '@heroicons/react/24/outline';
 
 // 호실 목록 (2층~4층, 각 16실)
@@ -73,6 +74,7 @@ export default function DataEntryPage() {
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isRecalculating, setIsRecalculating] = useState(false);
 
   // PDF 탭 상태
   const [pdfForm, setPdfForm] = useState<PdfFormData>(emptyPdfForm);
@@ -190,6 +192,34 @@ export default function DataEntryPage() {
     }
   };
 
+  // 저장 후 청구서 재정산 시도
+  const triggerRecalculate = async (year: number, month: number) => {
+    setIsRecalculating(true);
+    try {
+      const res = await fetch('/api/calculate/recalculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ year, month }),
+      });
+      const result = await res.json();
+      if (result.success) {
+        toast.success(
+          `청구서가 재계산되었습니다. (${result.unitBillCount}개 호실, 총 ${result.totalAmount?.toLocaleString()}원)`,
+          { duration: 4000 }
+        );
+      } else if (result.missingData) {
+        const missingLabel = result.missingData === 'excel' ? '호실별 사용량' : '한전 청구서';
+        toast(`${missingLabel} 데이터를 입력하면 청구서가 자동 생성됩니다.`, { icon: 'ℹ️' });
+      } else if (result.hasPaidBills) {
+        toast(`이미 납부된 호실(${result.paidCount}개)이 있어 재계산하지 않았습니다. 청구서관리에서 재계산해주세요.`, { icon: '⚠️', duration: 5000 });
+      }
+    } catch (error) {
+      console.error('Recalculation error:', error);
+    } finally {
+      setIsRecalculating(false);
+    }
+  };
+
   const resetPdfForm = () => {
     setPdfForm(emptyPdfForm);
     setPdfEditId(null);
@@ -248,6 +278,8 @@ export default function DataEntryPage() {
       if (result.success) {
         toast.success(result.message);
         if (result.id) setPdfEditId(result.id);
+        // 저장 성공 후 청구서 재정산 시도
+        await triggerRecalculate(selectedYear, selectedMonth);
       } else {
         toast.error(result.error || '저장에 실패했습니다.');
       }
@@ -301,6 +333,8 @@ export default function DataEntryPage() {
       if (result.success) {
         toast.success(result.message);
         if (result.id) setExcelEditId(result.id);
+        // 저장 성공 후 청구서 재정산 시도
+        await triggerRecalculate(selectedYear, selectedMonth);
       } else {
         toast.error(result.error || '저장에 실패했습니다.');
       }
@@ -573,13 +607,18 @@ export default function DataEntryPage() {
             </button>
             <button
               onClick={savePdfData}
-              disabled={isSaving}
+              disabled={isSaving || isRecalculating}
               className="flex-1 max-w-xs inline-flex justify-center items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
             >
               {isSaving ? (
                 <>
                   <ArrowPathIcon className="h-5 w-5 mr-2 animate-spin" />
                   저장 중...
+                </>
+              ) : isRecalculating ? (
+                <>
+                  <CalculatorIcon className="h-5 w-5 mr-2 animate-pulse" />
+                  재계산 중...
                 </>
               ) : pdfEditId ? (
                 '수정 저장'
@@ -661,13 +700,18 @@ export default function DataEntryPage() {
             </button>
             <button
               onClick={saveExcelData}
-              disabled={isSaving}
+              disabled={isSaving || isRecalculating}
               className="flex-1 max-w-xs inline-flex justify-center items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
             >
               {isSaving ? (
                 <>
                   <ArrowPathIcon className="h-5 w-5 mr-2 animate-spin" />
                   저장 중...
+                </>
+              ) : isRecalculating ? (
+                <>
+                  <CalculatorIcon className="h-5 w-5 mr-2 animate-pulse" />
+                  재계산 중...
                 </>
               ) : excelEditId ? (
                 '수정 저장'
