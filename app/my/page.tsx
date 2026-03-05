@@ -220,10 +220,9 @@ export default async function MyDashboard() {
           </div>
           <div className="space-y-3">
             {moveSettlements.map((ms) => (
-              <Link
+              <div
                 key={ms.id}
-                href={`/my/move-settlements/${ms.id}`}
-                className="block bg-white rounded-lg p-4 hover:shadow-md transition-shadow border border-amber-100"
+                className="bg-white rounded-lg p-4 border border-amber-100"
               >
                 <div className="flex justify-between items-center">
                   <div>
@@ -247,7 +246,16 @@ export default async function MyDashboard() {
                     </span>
                   </div>
                 </div>
-              </Link>
+                <div className="flex gap-2 mt-3">
+                  <Link
+                    href={`/my/move-settlements/${ms.id}`}
+                    className="flex-1 text-center text-sm px-3 py-2 bg-amber-100 text-amber-800 rounded-lg hover:bg-amber-200 transition-colors font-medium"
+                  >
+                    <DocumentTextIcon className="h-4 w-4 inline mr-1 -mt-0.5" />
+                    추정 고지서 보기
+                  </Link>
+                </div>
+              </div>
             ))}
           </div>
           <Link
