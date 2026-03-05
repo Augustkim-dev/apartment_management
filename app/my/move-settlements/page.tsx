@@ -129,7 +129,7 @@ export default function MyMoveSettlementsPage() {
                           사용량: {settlement.outgoingUsage} kWh
                         </p>
                         <p className="text-sm font-semibold text-gray-900">
-                          추정 금액: {Math.floor(settlement.estimatedTotalAmount).toLocaleString()}원
+                          추정 청구액: {Math.floor(settlement.estimatedTotalAmount).toLocaleString()}원
                         </p>
                       </div>
                     </div>
