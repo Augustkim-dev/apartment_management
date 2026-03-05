@@ -134,7 +134,7 @@ export class MoveSettlementService {
         const [billResult] = await conn.execute<ResultSetHeader>(
           `INSERT INTO unit_bills (
             monthly_bill_id, unit_id,
-            tenant_id, tenant_name_snapshot,
+            tenant_id, tenant_name_snapshot, contact_snapshot,
             bill_type, move_settlement_id,
             billing_period_start, billing_period_end,
             is_estimated,
@@ -145,12 +145,13 @@ export class MoveSettlementService {
             tv_license_fee, round_down,
             total_amount, unpaid_amount,
             payment_status, due_date
-          ) VALUES (?, ?, ?, ?, 'move_out', ?, ?, ?, TRUE, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, 0, 'pending', ?)`,
+          ) VALUES (?, ?, ?, ?, ?, 'move_out', ?, ?, ?, TRUE, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, 0, 'pending', ?)`,
           [
             monthlyBillId,
             unitId,
             activeTenant.id,
             activeTenant.name,
+            activeTenant.contact || null,
             settlementId,
             this.formatDate(periodStart),
             this.formatDate(settlementDateObj),

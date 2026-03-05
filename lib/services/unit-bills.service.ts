@@ -69,7 +69,7 @@ export class UnitBillsService {
       for (const unitBill of calculationResult.unitBills) {
         // units 테이블에서 unit_id + active tenant 조회
         const [units] = await conn.execute<RowDataPacket[]>(
-          `SELECT u.id, t.id AS tenant_id, t.name AS tenant_name
+          `SELECT u.id, t.id AS tenant_id, t.name AS tenant_name, t.contact AS tenant_contact
            FROM units u
            LEFT JOIN tenants t ON t.unit_id = u.id AND t.status = 'active'
            WHERE u.unit_number = ?`,
@@ -84,6 +84,7 @@ export class UnitBillsService {
         const unitId = units[0].id;
         const tenantId = units[0].tenant_id || null;
         const tenantName = units[0].tenant_name || null;
+        const tenantContact = units[0].tenant_contact || null;
 
         // 이사 정산 호실 체크
         const settlement = moveSettlementUnits.get(unitId);
@@ -111,10 +112,12 @@ export class UnitBillsService {
           const incomingTenantId = settlement.incoming_tenant_id || null;
           const incomingTenantName = settlement.incoming_tenant_name || null;
 
+          const incomingTenantContact = settlement.incoming_tenant_contact || null;
+
           const [result] = await conn.execute<ResultSetHeader>(
             `INSERT INTO unit_bills (
               monthly_bill_id, unit_id,
-              tenant_id, tenant_name_snapshot,
+              tenant_id, tenant_name_snapshot, contact_snapshot,
               bill_type, move_settlement_id,
               billing_period_start, billing_period_end,
               is_estimated,
@@ -125,12 +128,13 @@ export class UnitBillsService {
               tv_license_fee, round_down,
               total_amount, unpaid_amount,
               payment_status, due_date, notes
-            ) VALUES (?, ?, ?, ?, 'move_in', ?, ?, ?, FALSE, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, 0, 'pending', ?, ?)`,
+            ) VALUES (?, ?, ?, ?, ?, 'move_in', ?, ?, ?, FALSE, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, 0, 'pending', ?, ?)`,
             [
               monthlyBillId,
               unitId,
               incomingTenantId,
               incomingTenantName,
+              incomingTenantContact,
               settlement.id,
               settlement.incoming_period_start || settlement.outgoing_period_end,
               null, // billing_period_end는 월말 검침시 확정
@@ -161,7 +165,7 @@ export class UnitBillsService {
           const [result] = await conn.execute<ResultSetHeader>(
             `INSERT INTO unit_bills (
               monthly_bill_id, unit_id,
-              tenant_id, tenant_name_snapshot,
+              tenant_id, tenant_name_snapshot, contact_snapshot,
               bill_type,
               previous_reading, current_reading,
               usage_amount, usage_rate,
@@ -169,12 +173,13 @@ export class UnitBillsService {
               vat, power_fund, tv_license_fee, round_down,
               total_amount, unpaid_amount,
               payment_status, due_date, notes
-            ) VALUES (?, ?, ?, ?, 'regular', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'pending', ?, ?)`,
+            ) VALUES (?, ?, ?, ?, ?, 'regular', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'pending', ?, ?)`,
             [
               monthlyBillId,
               unitId,
               tenantId,
               tenantName,
+              tenantContact,
               unitBill.previousReading || null,
               unitBill.currentReading || null,
               unitBill.usage,
@@ -219,7 +224,7 @@ export class UnitBillsService {
         ub.*,
         u.unit_number,
         COALESCE(ub.tenant_name_snapshot, u.tenant_name) AS tenant_name,
-        u.contact,
+        COALESCE(ub.contact_snapshot, u.contact) AS contact,
         u.email
       FROM unit_bills ub
       JOIN units u ON ub.unit_id = u.id
@@ -263,7 +268,7 @@ export class UnitBillsService {
         ub.*,
         u.unit_number,
         COALESCE(ub.tenant_name_snapshot, u.tenant_name) AS tenant_name,
-        u.contact,
+        COALESCE(ub.contact_snapshot, u.contact) AS contact,
         mb.bill_year,
         mb.bill_month
       FROM unit_bills ub
@@ -379,7 +384,7 @@ export class UnitBillsService {
     }
 
     if (phoneNumber) {
-      conditions.push('u.contact LIKE ?');
+      conditions.push('COALESCE(ub.contact_snapshot, u.contact) LIKE ?');
       params.push(`%${phoneNumber}%`);
     }
 
@@ -410,7 +415,7 @@ export class UnitBillsService {
         mb.bill_month as billMonth,
         u.unit_number as unitNumber,
         COALESCE(ub.tenant_name_snapshot, u.tenant_name) as tenantName,
-        u.contact,
+        COALESCE(ub.contact_snapshot, u.contact) AS contact,
         u.email,
         ub.usage_amount as usageAmount,
         ub.total_amount as totalAmount,

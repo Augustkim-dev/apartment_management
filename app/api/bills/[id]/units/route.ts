@@ -39,7 +39,7 @@ export async function GET(
         ub.unit_id,
         u.unit_number,
         COALESCE(ub.tenant_name_snapshot, u.tenant_name) AS tenant_name,
-        u.contact,
+        COALESCE(ub.contact_snapshot, u.contact) AS contact,
         ub.previous_reading,
         ub.current_reading,
         ub.usage_amount,
