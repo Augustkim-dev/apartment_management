@@ -113,13 +113,19 @@ export default async function MyDashboard() {
       ms.bill_year,
       ms.bill_month,
       ms.settlement_date,
-      COALESCE(ms.estimated_basic_fee, 0) + COALESCE(ms.estimated_power_fee, 0) +
-      COALESCE(ms.estimated_climate_fee, 0) + COALESCE(ms.estimated_fuel_fee, 0) +
-      COALESCE(ms.estimated_power_factor_fee, 0) + COALESCE(ms.estimated_vat, 0) +
-      COALESCE(ms.estimated_power_fund, 0) AS estimated_charge,
+      COALESCE(
+        ub.total_amount,
+        NULLIF(
+          COALESCE(ms.estimated_basic_fee, 0) + COALESCE(ms.estimated_power_fee, 0) +
+          COALESCE(ms.estimated_climate_fee, 0) + COALESCE(ms.estimated_fuel_fee, 0) +
+          COALESCE(ms.estimated_power_factor_fee, 0) + COALESCE(ms.estimated_vat, 0) +
+          COALESCE(ms.estimated_power_fund, 0), 0
+        )
+      ) AS estimated_charge,
       ms.outgoing_usage,
       ms.status
     FROM move_settlements ms
+    LEFT JOIN unit_bills ub ON ub.move_settlement_id = ms.id AND ub.bill_type = 'move_out'
     WHERE ms.unit_id = ?
     AND ms.status != 'cancelled'
     ${settlementDateFilter}
