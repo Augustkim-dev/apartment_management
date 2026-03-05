@@ -27,14 +27,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // 입주일 기준 필터: 본인 입주 기간의 정산만 조회
+    const moveInDate = session.user.moveInDate ? new Date(session.user.moveInDate) : null;
+    const dateFilter = moveInDate ? 'AND ms.settlement_date >= ?' : '';
+    const params: any[] = moveInDate
+      ? [session.user.unitId, moveInDate.toISOString().split('T')[0]]
+      : [session.user.unitId];
+
     const settlements = await query<MoveSettlementRow[]>(
       `SELECT ms.*, u.unit_number, ot.name AS outgoing_name
        FROM move_settlements ms
        JOIN units u ON ms.unit_id = u.id
        JOIN tenants ot ON ms.outgoing_tenant_id = ot.id
        WHERE ms.unit_id = ? AND ms.status != 'cancelled'
+       ${dateFilter}
        ORDER BY ms.created_at DESC`,
-      [session.user.unitId]
+      params
     );
 
     const result = settlements.map((row) => ({
