@@ -9,6 +9,7 @@ import {
   DocumentTextIcon,
   UserCircleIcon,
   ArrowLeftOnRectangleIcon,
+  ArrowsRightLeftIcon,
   Bars3Icon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
@@ -16,6 +17,7 @@ import {
 const navigation = [
   { name: '대시보드', href: '/my', icon: HomeIcon },
   { name: '청구서', href: '/my/bills', icon: DocumentTextIcon },
+  { name: '이사정산', href: '/my/move-settlements', icon: ArrowsRightLeftIcon },
   { name: '프로필', href: '/my/profile', icon: UserCircleIcon },
 ];
 

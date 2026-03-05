@@ -87,7 +87,8 @@ export class MoveSettlementService {
       const monthlyBillId = monthlyBills.length > 0 ? monthlyBills[0].id : null;
       const dueDate = monthlyBills.length > 0 ? monthlyBills[0].due_date : null;
 
-      // 7-b. move_settlements 레코드 생성
+      // 7-b. move_settlements 레코드 생성 (항목별 추정 요금 포함)
+      const bill = estimationResult.calculatedBill;
       const [settlementResult] = await conn.execute<ResultSetHeader>(
         `INSERT INTO move_settlements (
           unit_id, settlement_date, bill_year, bill_month,
@@ -95,8 +96,11 @@ export class MoveSettlementService {
           outgoing_meter_reading, outgoing_usage,
           estimated_total_usage, estimated_total_amount,
           estimation_base_months,
+          estimated_basic_fee, estimated_power_fee, estimated_climate_fee,
+          estimated_fuel_fee, estimated_power_factor_fee,
+          estimated_vat, estimated_power_fund, estimated_usage_ratio,
           status, notes, created_by
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
         [
           unitId,
           settlementDate,
@@ -110,6 +114,14 @@ export class MoveSettlementService {
           estimationResult.estimatedCharges.avgTotalUsage,
           estimationResult.estimatedCharges.avgTotalAmount,
           JSON.stringify(estimationResult.estimatedCharges.baseMonths),
+          bill.basicFee,
+          bill.powerFee,
+          bill.climateFee,
+          bill.fuelFee,
+          bill.powerFactorFee,
+          bill.vat,
+          bill.powerFund,
+          bill.usageRatio,
           notes || null,
           userId || null,
         ]
@@ -119,7 +131,6 @@ export class MoveSettlementService {
       // 7-c. unit_bills에 move_out 청구서 삽입
       let unitBillId: number | null = null;
       if (monthlyBillId) {
-        const bill = estimationResult.calculatedBill;
         const [billResult] = await conn.execute<ResultSetHeader>(
           `INSERT INTO unit_bills (
             monthly_bill_id, unit_id,
@@ -505,6 +516,22 @@ export class MoveSettlementService {
         totalAmount: row.estimated_total_amount != null
           ? parseFloat(row.estimated_total_amount) : null,
         baseMonths,
+        basicFee: row.estimated_basic_fee != null
+          ? parseFloat(row.estimated_basic_fee) : null,
+        powerFee: row.estimated_power_fee != null
+          ? parseFloat(row.estimated_power_fee) : null,
+        climateFee: row.estimated_climate_fee != null
+          ? parseFloat(row.estimated_climate_fee) : null,
+        fuelFee: row.estimated_fuel_fee != null
+          ? parseFloat(row.estimated_fuel_fee) : null,
+        powerFactorFee: row.estimated_power_factor_fee != null
+          ? parseFloat(row.estimated_power_factor_fee) : null,
+        vat: row.estimated_vat != null
+          ? parseFloat(row.estimated_vat) : null,
+        powerFund: row.estimated_power_fund != null
+          ? parseFloat(row.estimated_power_fund) : null,
+        usageRatio: row.estimated_usage_ratio != null
+          ? parseFloat(row.estimated_usage_ratio) : null,
       },
 
       outgoingBill,

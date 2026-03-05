@@ -9,6 +9,9 @@ import {
   ArrowsRightLeftIcon,
   ArrowUturnLeftIcon,
   UserPlusIcon,
+  DocumentTextIcon,
+  ClipboardDocumentIcon,
+  CheckIcon,
 } from '@heroicons/react/24/outline';
 
 interface SettlementDetail {
@@ -42,6 +45,14 @@ interface SettlementDetail {
     totalUsage: number | null;
     totalAmount: number | null;
     baseMonths: { year: number; month: number }[];
+    basicFee: number | null;
+    powerFee: number | null;
+    climateFee: number | null;
+    fuelFee: number | null;
+    powerFactorFee: number | null;
+    vat: number | null;
+    powerFund: number | null;
+    usageRatio: number | null;
   };
 
   outgoingBill: {
@@ -80,6 +91,7 @@ export default function MoveSettlementDetailPage() {
   const [incomingMoveInDate, setIncomingMoveInDate] = useState('');
   const [incomingMoveInReading, setIncomingMoveInReading] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   useEffect(() => {
     fetchDetail();
@@ -196,6 +208,13 @@ export default function MoveSettlementDetailPage() {
     }
   };
 
+  const copyShareLink = () => {
+    const url = `${window.location.origin}/invoice/settlement/${id}`;
+    navigator.clipboard.writeText(url);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  };
+
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '-';
     const d = new Date(dateStr);
@@ -252,34 +271,59 @@ export default function MoveSettlementDetailPage() {
           </span>
         </div>
 
-        {detail.status !== 'cancelled' && (
-          <div className="flex gap-2">
-            {detail.status === 'pending' && (
+        <div className="flex gap-2 flex-wrap">
+          <Link
+            href={`/dashboard/move-settlements/${detail.id}/invoice`}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700"
+          >
+            <DocumentTextIcon className="h-4 w-4" />
+            추정 청구서 보기
+          </Link>
+          <button
+            onClick={copyShareLink}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
+          >
+            {linkCopied ? (
               <>
-                <button
-                  onClick={() => handleStatusChange('completed')}
-                  className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
-                >
-                  완료 처리
-                </button>
-                <button
-                  onClick={() => handleStatusChange('cancelled')}
-                  className="rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
-                >
-                  취소
-                </button>
+                <CheckIcon className="h-4 w-4 text-green-600" />
+                복사됨
+              </>
+            ) : (
+              <>
+                <ClipboardDocumentIcon className="h-4 w-4" />
+                공유 링크 복사
               </>
             )}
-            <button
-              onClick={handleRollback}
-              disabled={submitting}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-4 py-2 text-sm font-medium text-red-700 ring-1 ring-inset ring-red-200 hover:bg-red-100 disabled:opacity-50"
-            >
-              <ArrowUturnLeftIcon className="h-4 w-4" />
-              롤백
-            </button>
-          </div>
-        )}
+          </button>
+          {detail.status !== 'cancelled' && (
+            <>
+              {detail.status === 'pending' && (
+                <>
+                  <button
+                    onClick={() => handleStatusChange('completed')}
+                    className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+                  >
+                    완료 처리
+                  </button>
+                  <button
+                    onClick={() => handleStatusChange('cancelled')}
+                    className="rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
+                  >
+                    취소
+                  </button>
+                </>
+              )}
+              <button
+                onClick={handleRollback}
+                disabled={submitting}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-4 py-2 text-sm font-medium text-red-700 ring-1 ring-inset ring-red-200 hover:bg-red-100 disabled:opacity-50"
+              >
+                <ArrowUturnLeftIcon className="h-4 w-4" />
+                롤백
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -473,6 +517,49 @@ export default function MoveSettlementDetailPage() {
                 </dd>
               </div>
             </dl>
+          ) : detail.estimation.totalAmount != null ? (
+            <div>
+              <div className="flex justify-between items-center mb-3">
+                <span className="rounded bg-orange-100 px-2 py-0.5 text-xs font-semibold text-orange-700">
+                  추정 청구서
+                </span>
+                <span className="text-lg font-bold text-amber-700">
+                  {fmtNumber(detail.estimation.totalAmount)}원
+                </span>
+              </div>
+              {detail.estimation.basicFee != null && (
+                <div className="border-t pt-2 space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">기본요금</span>
+                    <span>{fmtNumber(detail.estimation.basicFee)}원</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">전력량요금</span>
+                    <span>{fmtNumber(detail.estimation.powerFee)}원</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">기후환경요금</span>
+                    <span>{fmtNumber(detail.estimation.climateFee)}원</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">연료비조정액</span>
+                    <span>{fmtNumber(detail.estimation.fuelFee)}원</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">역률요금</span>
+                    <span>{fmtNumber(detail.estimation.powerFactorFee)}원</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">부가가치세</span>
+                    <span>{fmtNumber(detail.estimation.vat)}원</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">전력기금</span>
+                    <span>{fmtNumber(detail.estimation.powerFund)}원</span>
+                  </div>
+                </div>
+              )}
+            </div>
           ) : (
             <p className="text-sm text-gray-400">
               해당 월의 청구서가 아직 생성되지 않았습니다.

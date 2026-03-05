@@ -139,6 +139,14 @@ export interface MoveSettlementDetail {
     totalUsage: number | null;
     totalAmount: number | null;
     baseMonths: { year: number; month: number }[];
+    basicFee: number | null;
+    powerFee: number | null;
+    climateFee: number | null;
+    fuelFee: number | null;
+    powerFactorFee: number | null;
+    vat: number | null;
+    powerFund: number | null;
+    usageRatio: number | null;
   };
 
   // 퇴거자 청구서 (unit_bill)

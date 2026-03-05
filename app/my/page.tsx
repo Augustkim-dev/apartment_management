@@ -5,7 +5,8 @@ import {
   CurrencyDollarIcon,
   ClockIcon,
   CheckCircleIcon,
-  DocumentTextIcon
+  DocumentTextIcon,
+  ArrowsRightLeftIcon
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import PaymentAccountCard from "@/components/PaymentAccountCard";
@@ -24,6 +25,16 @@ interface UnitBill {
 interface UnpaidStats {
   unpaid_count: number;
   unpaid_total: number;
+}
+
+interface MoveSettlementInfo {
+  id: number;
+  bill_year: number;
+  bill_month: number;
+  settlement_date: string;
+  estimated_total_amount: number;
+  outgoing_usage: number;
+  status: string;
 }
 
 export default async function MyDashboard() {
@@ -89,6 +100,25 @@ export default async function MyDashboard() {
   `, unpaidParams);
 
   const unpaidStats = unpaidStatsResult[0] || { unpaid_count: 0, unpaid_total: 0 };
+
+  // 이사정산 내역 조회 (퇴거자인 경우)
+  const moveSettlements = session.user.moveOutDate
+    ? await query<MoveSettlementInfo[]>(`
+      SELECT
+        ms.id,
+        ms.bill_year,
+        ms.bill_month,
+        ms.settlement_date,
+        ms.estimated_total_amount,
+        ms.outgoing_usage,
+        ms.status
+      FROM move_settlements ms
+      WHERE ms.unit_id = ?
+      AND ms.status != 'cancelled'
+      ORDER BY ms.created_at DESC
+      LIMIT 3
+    `, [session.user.unitId])
+    : [];
 
   // 현재 달 청구서
   const currentMonth = new Date().getMonth() + 1;
@@ -180,6 +210,54 @@ export default async function MyDashboard() {
         accountNumber={paymentConfig.account_number || ''}
         accountHolder={paymentConfig.account_holder || ''}
       />
+
+      {/* 이사정산 안내 */}
+      {moveSettlements.length > 0 && (
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-6 mb-8">
+          <div className="flex items-center mb-4">
+            <ArrowsRightLeftIcon className="h-6 w-6 text-amber-600 mr-2" />
+            <h2 className="text-lg font-semibold text-amber-900">이사정산 내역</h2>
+          </div>
+          <div className="space-y-3">
+            {moveSettlements.map((ms) => (
+              <Link
+                key={ms.id}
+                href={`/my/move-settlements/${ms.id}`}
+                className="block bg-white rounded-lg p-4 hover:shadow-md transition-shadow border border-amber-100"
+              >
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      {ms.bill_year}년 {ms.bill_month}월 이사정산
+                    </p>
+                    <p className="text-sm text-gray-600 mt-1">
+                      사용량: {ms.outgoing_usage} kWh
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-amber-700">
+                      {(ms.estimated_total_amount ? Math.floor(ms.estimated_total_amount) : 0).toLocaleString()}원
+                    </p>
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                      ms.status === 'completed'
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-amber-100 text-amber-700'
+                    }`}>
+                      {ms.status === 'completed' ? '완료' : '정산 대기'}
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+          <Link
+            href="/my/move-settlements"
+            className="block text-center text-sm text-amber-600 hover:text-amber-700 mt-3"
+          >
+            전체 이사정산 내역 보기 →
+          </Link>
+        </div>
+      )}
 
       {/* 최근 청구서 목록 */}
       <div className="bg-white rounded-lg shadow">
