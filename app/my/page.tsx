@@ -32,7 +32,7 @@ interface MoveSettlementInfo {
   bill_year: number;
   bill_month: number;
   settlement_date: string;
-  estimated_total_amount: number;
+  estimated_charge: number;
   outgoing_usage: number;
   status: string;
 }
@@ -113,7 +113,10 @@ export default async function MyDashboard() {
       ms.bill_year,
       ms.bill_month,
       ms.settlement_date,
-      ms.estimated_total_amount,
+      COALESCE(ms.estimated_basic_fee, 0) + COALESCE(ms.estimated_power_fee, 0) +
+      COALESCE(ms.estimated_climate_fee, 0) + COALESCE(ms.estimated_fuel_fee, 0) +
+      COALESCE(ms.estimated_power_factor_fee, 0) + COALESCE(ms.estimated_vat, 0) +
+      COALESCE(ms.estimated_power_fund, 0) AS estimated_charge,
       ms.outgoing_usage,
       ms.status
     FROM move_settlements ms
@@ -239,7 +242,7 @@ export default async function MyDashboard() {
                   </div>
                   <div className="text-right">
                     <p className="text-lg font-bold text-amber-700">
-                      {(ms.estimated_total_amount ? Math.floor(ms.estimated_total_amount) : 0).toLocaleString()}원
+                      {(ms.estimated_charge ? Math.floor(ms.estimated_charge) : 0).toLocaleString()}원
                     </p>
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                       ms.status === 'completed'
