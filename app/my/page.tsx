@@ -101,24 +101,22 @@ export default async function MyDashboard() {
 
   const unpaidStats = unpaidStatsResult[0] || { unpaid_count: 0, unpaid_total: 0 };
 
-  // 이사정산 내역 조회 (퇴거자인 경우)
-  const moveSettlements = session.user.moveOutDate
-    ? await query<MoveSettlementInfo[]>(`
-      SELECT
-        ms.id,
-        ms.bill_year,
-        ms.bill_month,
-        ms.settlement_date,
-        ms.estimated_total_amount,
-        ms.outgoing_usage,
-        ms.status
-      FROM move_settlements ms
-      WHERE ms.unit_id = ?
-      AND ms.status != 'cancelled'
-      ORDER BY ms.created_at DESC
-      LIMIT 3
-    `, [session.user.unitId])
-    : [];
+  // 이사정산 내역 조회 (해당 호실에 정산 데이터가 있으면 표시)
+  const moveSettlements = await query<MoveSettlementInfo[]>(`
+    SELECT
+      ms.id,
+      ms.bill_year,
+      ms.bill_month,
+      ms.settlement_date,
+      ms.estimated_total_amount,
+      ms.outgoing_usage,
+      ms.status
+    FROM move_settlements ms
+    WHERE ms.unit_id = ?
+    AND ms.status != 'cancelled'
+    ORDER BY ms.created_at DESC
+    LIMIT 3
+  `, [session.user.unitId]);
 
   // 현재 달 청구서
   const currentMonth = new Date().getMonth() + 1;
