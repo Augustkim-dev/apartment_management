@@ -1,6 +1,7 @@
 import { getRequiredSession } from "@/lib/auth-utils";
 import { query } from "@/lib/db-utils";
 import { configService } from "@/lib/services/config-service";
+import { estimationService } from "@/lib/services/estimation.service";
 import {
   CurrencyDollarIcon,
   ClockIcon,
@@ -32,7 +33,7 @@ interface MoveSettlementInfo {
   bill_year: number;
   bill_month: number;
   settlement_date: string;
-  estimated_charge: number;
+  estimated_charge: number | null;
   outgoing_usage: number;
   status: string;
 }
@@ -132,6 +133,21 @@ export default async function MyDashboard() {
     ORDER BY ms.created_at DESC
     LIMIT 3
   `, settlementParams);
+
+  // estimated_charge가 NULL인 정산은 estimationService로 재계산
+  for (const ms of moveSettlements) {
+    if (ms.estimated_charge == null) {
+      try {
+        const outgoingUsage = Number(ms.outgoing_usage) || 0;
+        const monthsData = await estimationService.getLast3MonthsData(ms.bill_year, ms.bill_month);
+        const estimatedCharges = estimationService.calculateAverage(monthsData);
+        const result = estimationService.calculateMoveOutBill(outgoingUsage, estimatedCharges);
+        ms.estimated_charge = result.calculatedBill.totalAmount;
+      } catch {
+        ms.estimated_charge = 0;
+      }
+    }
+  }
 
   // 현재 달 청구서
   const currentMonth = new Date().getMonth() + 1;
