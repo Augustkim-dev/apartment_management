@@ -62,6 +62,7 @@ export default function UserLayout({
                     <Link
                       key={item.name}
                       href={item.href}
+                      onClick={() => setSidebarOpen(false)}
                       className={`
                         ${pathname === item.href
                           ? 'bg-blue-50 text-blue-600'
