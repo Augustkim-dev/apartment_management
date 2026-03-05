@@ -72,15 +72,7 @@ function NewMoveSettlementContent() {
   // Step 3: 추정 결과
   const [estimation, setEstimation] = useState<EstimationPreview | null>(null);
 
-  // Step 4: 입주자 (선택)
-  const [registerIncoming, setRegisterIncoming] = useState(false);
-  const [incomingName, setIncomingName] = useState('');
-  const [incomingContact, setIncomingContact] = useState('');
-  const [incomingEmail, setIncomingEmail] = useState('');
-  const [incomingMoveInDate, setIncomingMoveInDate] = useState('');
-  const [incomingMoveInReading, setIncomingMoveInReading] = useState('');
-
-  // Step 5: 비고
+  // Step 4: 비고
   const [notes, setNotes] = useState('');
 
   // 호실 목록 로드
@@ -163,16 +155,6 @@ function NewMoveSettlementContent() {
         notes: notes || undefined,
       };
 
-      if (registerIncoming && incomingName && incomingMoveInDate && incomingMoveInReading) {
-        body.incomingTenant = {
-          name: incomingName,
-          contact: incomingContact || undefined,
-          email: incomingEmail || undefined,
-          moveInDate: incomingMoveInDate,
-          moveInReading: parseFloat(incomingMoveInReading),
-        };
-      }
-
       const res = await fetch('/api/move-settlements', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -221,8 +203,7 @@ function NewMoveSettlementContent() {
           { num: 1, label: '호실 선택' },
           { num: 2, label: '퇴거 정보' },
           { num: 3, label: '추정 미리보기' },
-          { num: 4, label: '입주자 등록' },
-          { num: 5, label: '확인 및 저장' },
+          { num: 4, label: '확인 및 저장' },
         ].map((s, i) => (
           <React.Fragment key={s.num}>
             {i > 0 && (
@@ -431,112 +412,11 @@ function NewMoveSettlementContent() {
         </div>
       )}
 
-      {/* Step 4: 입주자 등록 (선택) */}
-      {step === 4 && (
+      {/* Step 4: 확인 및 저장 */}
+      {step === 4 && estimation && (
         <div className="rounded-lg bg-white p-6 shadow">
           <h2 className="mb-4 text-lg font-semibold text-gray-900">
-            Step 4. 입주자 등록 (선택)
-          </h2>
-          <p className="mb-4 text-sm text-gray-500">
-            새 입주자가 확정된 경우 지금 등록할 수 있습니다. 나중에 등록할 수도 있습니다.
-          </p>
-
-          <label className="flex items-center gap-2 mb-4">
-            <input
-              type="checkbox"
-              checked={registerIncoming}
-              onChange={(e) => setRegisterIncoming(e.target.checked)}
-              className="rounded border-gray-300"
-            />
-            <span className="text-sm font-medium text-gray-700">
-              새 입주자 지금 등록
-            </span>
-          </label>
-
-          {registerIncoming && (
-            <div className="space-y-4 max-w-md rounded-lg border border-gray-200 p-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  입주자 이름 *
-                </label>
-                <input
-                  type="text"
-                  value={incomingName}
-                  onChange={(e) => setIncomingName(e.target.value)}
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  연락처
-                </label>
-                <input
-                  type="text"
-                  value={incomingContact}
-                  onChange={(e) => setIncomingContact(e.target.value)}
-                  placeholder="010-0000-0000"
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  이메일
-                </label>
-                <input
-                  type="email"
-                  value={incomingEmail}
-                  onChange={(e) => setIncomingEmail(e.target.value)}
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  입주 일시 *
-                </label>
-                <input
-                  type="datetime-local"
-                  value={incomingMoveInDate}
-                  onChange={(e) => setIncomingMoveInDate(e.target.value)}
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  입주 시 계량기값 (kWh) *
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={incomingMoveInReading}
-                  onChange={(e) => setIncomingMoveInReading(e.target.value)}
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                />
-              </div>
-            </div>
-          )}
-
-          <div className="mt-6 flex justify-between">
-            <button
-              onClick={() => setStep(3)}
-              className="rounded-lg border px-6 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              이전
-            </button>
-            <button
-              onClick={() => setStep(5)}
-              className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700"
-            >
-              다음
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Step 5: 확인 및 저장 */}
-      {step === 5 && estimation && (
-        <div className="rounded-lg bg-white p-6 shadow">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">
-            Step 5. 확인 및 저장
+            Step 4. 확인 및 저장
           </h2>
 
           <div className="space-y-4">
@@ -564,22 +444,6 @@ function NewMoveSettlementContent() {
               </dl>
             </div>
 
-            {registerIncoming && incomingName && (
-              <div className="rounded-lg bg-green-50 p-4">
-                <h3 className="font-medium text-gray-700 mb-2">입주자 정보</h3>
-                <dl className="grid grid-cols-2 gap-2 text-sm">
-                  <dt className="text-gray-500">이름</dt>
-                  <dd className="font-medium">{incomingName}</dd>
-                  <dt className="text-gray-500">입주 일시</dt>
-                  <dd className="font-medium">
-                    {incomingMoveInDate.replace('T', ' ')}
-                  </dd>
-                  <dt className="text-gray-500">계량기값</dt>
-                  <dd className="font-medium">{incomingMoveInReading} kWh</dd>
-                </dl>
-              </div>
-            )}
-
             {notes && (
               <div className="rounded-lg bg-gray-50 p-4">
                 <h3 className="font-medium text-gray-700 mb-1">비고</h3>
@@ -603,7 +467,7 @@ function NewMoveSettlementContent() {
 
           <div className="mt-6 flex justify-between">
             <button
-              onClick={() => setStep(4)}
+              onClick={() => setStep(3)}
               className="rounded-lg border px-6 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
               이전

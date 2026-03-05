@@ -27,7 +27,7 @@ export async function GET(
       SELECT
         ub.*,
         u.unit_number,
-        u.tenant_name,
+        COALESCE(ub.tenant_name_snapshot, u.tenant_name) AS tenant_name,
         mb.bill_year,
         mb.bill_month,
         mb.billing_period_start,

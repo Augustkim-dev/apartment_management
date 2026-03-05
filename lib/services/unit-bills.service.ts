@@ -262,7 +262,7 @@ export class UnitBillsService {
       `SELECT
         ub.*,
         u.unit_number,
-        u.tenant_name,
+        COALESCE(ub.tenant_name_snapshot, u.tenant_name) AS tenant_name,
         u.contact,
         mb.bill_year,
         mb.bill_month
@@ -374,7 +374,7 @@ export class UnitBillsService {
     }
 
     if (userName) {
-      conditions.push('u.tenant_name LIKE ?');
+      conditions.push('COALESCE(ub.tenant_name_snapshot, u.tenant_name) LIKE ?');
       params.push(`%${userName}%`);
     }
 
@@ -409,7 +409,7 @@ export class UnitBillsService {
         mb.bill_year as billYear,
         mb.bill_month as billMonth,
         u.unit_number as unitNumber,
-        u.tenant_name as tenantName,
+        COALESCE(ub.tenant_name_snapshot, u.tenant_name) as tenantName,
         u.contact,
         u.email,
         ub.usage_amount as usageAmount,
@@ -531,7 +531,7 @@ export class UnitBillsService {
       `SELECT
         ub.*,
         u.unit_number,
-        u.tenant_name
+        COALESCE(ub.tenant_name_snapshot, u.tenant_name) AS tenant_name
       FROM unit_bills ub
       JOIN units u ON ub.unit_id = u.id
       WHERE ub.id = ? AND ub.monthly_bill_id = ?`,

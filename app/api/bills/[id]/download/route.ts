@@ -56,7 +56,7 @@ export async function GET(
     const unitBills = await query<UnitBillData[]>(`
       SELECT
         u.unit_number,
-        u.tenant_name,
+        COALESCE(ub.tenant_name_snapshot, u.tenant_name) AS tenant_name,
         ub.previous_reading,
         ub.current_reading,
         ub.usage_amount,
