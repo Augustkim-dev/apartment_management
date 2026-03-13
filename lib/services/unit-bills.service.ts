@@ -67,9 +67,10 @@ export class UnitBillsService {
       const savedBills = [];
 
       for (const unitBill of calculationResult.unitBills) {
-        // units 테이블에서 unit_id + active tenant 조회
+        // units 테이블에서 unit_id + 현재 입주자 조회 (units 테이블이 정확한 현재 입주자 정보)
         const [units] = await conn.execute<RowDataPacket[]>(
-          `SELECT u.id, t.id AS tenant_id, t.name AS tenant_name, t.contact AS tenant_contact
+          `SELECT u.id, u.tenant_name, u.contact AS tenant_contact,
+                  t.id AS tenant_id
            FROM units u
            LEFT JOIN tenants t ON t.unit_id = u.id AND t.status = 'active'
            WHERE u.unit_number = ?`,
